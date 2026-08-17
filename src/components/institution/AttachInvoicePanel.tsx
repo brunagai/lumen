@@ -28,13 +28,37 @@ export function AttachInvoicePanel({
   const [drafts, setDrafts] = useState<
     Record<string, { invoiceNumber: string; issuer: string }>
   >({});
+  const [localError, setLocalError] = useState<string | null>(null);
 
   function draftFor(id: string) {
     return drafts[id] ?? { invoiceNumber: "", issuer: "" };
   }
 
+  async function handleAttach(movement: MovementRecord) {
+    const draft = draftFor(movement.id);
+    const invoiceNumber = draft.invoiceNumber.trim();
+    const issuer = (draft.issuer || movement.supplierName || "").trim();
+
+    if (invoiceNumber.length < 3) {
+      setLocalError("Informe o número da nota fiscal da pendência.");
+      return;
+    }
+
+    if (issuer.length < 3) {
+      setLocalError("Informe o emitente da nota fiscal.");
+      return;
+    }
+
+    setLocalError(null);
+    await onAttach({
+      movementId: movement.id,
+      invoiceNumber,
+      issuer,
+    });
+  }
+
   return (
-    <section className="rounded-2xl border border-border bg-surface p-6">
+    <section className="rounded-2xl border border-border bg-surface p-4 sm:p-6">
       <h2 className="text-lg font-semibold text-teal">Anexar recibo / nota fiscal</h2>
       <p className="mt-1 text-sm text-muted">
         Feche as saídas pendentes para restaurar o score e atualizar a trilha
@@ -56,10 +80,10 @@ export function AttachInvoicePanel({
                 key={movement.id}
                 className="rounded-xl border border-pending/30 bg-pending-bg/40 p-4"
               >
-                <p className="font-medium text-foreground">
+                <p className="font-medium break-words text-foreground">
                   {movement.description}
                 </p>
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-1 text-sm break-words text-muted">
                   {movement.supplierName} ·{" "}
                   {formatBrlFromCents(movement.amount.amountCents)} ·{" "}
                   {formatDateTimePtBr(movement.occurredAt)}
@@ -99,14 +123,9 @@ export function AttachInvoicePanel({
                 </div>
                 <div className="mt-3">
                   <Button
+                    className="w-full sm:w-auto"
                     loading={isSubmitting}
-                    onClick={() =>
-                      void onAttach({
-                        movementId: movement.id,
-                        invoiceNumber: draft.invoiceNumber,
-                        issuer: draft.issuer || movement.supplierName || "",
-                      })
-                    }
+                    onClick={() => void handleAttach(movement)}
                   >
                     Anexar e fechar cadeia
                   </Button>
@@ -117,9 +136,9 @@ export function AttachInvoicePanel({
         </ul>
       )}
 
-      {errorMessage ? (
+      {localError || errorMessage ? (
         <p className="mt-4 text-sm text-red-800" role="alert">
-          {errorMessage}
+          {localError ?? errorMessage}
         </p>
       ) : null}
     </section>

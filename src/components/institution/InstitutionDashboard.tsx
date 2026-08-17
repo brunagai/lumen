@@ -13,8 +13,10 @@ import { TransparencyScoreCard } from "@/components/institution/TransparencyScor
 import { WithdrawForm } from "@/components/institution/WithdrawForm";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/Button";
+import { ErrorPanel, LoadingPanel } from "@/components/ui/StatusPanel";
 import { CAMPAIGN, INSTITUTION } from "@/config/campaign";
 import type { AsyncState } from "@/lib/async-state";
+import { toAppError } from "@/lib/errors";
 
 export function InstitutionDashboard() {
   const { signOut } = useAuth();
@@ -34,25 +36,8 @@ export function InstitutionDashboard() {
   const [attachError, setAttachError] = useState<string | null>(null);
 
   const applySnapshot = useCallback(async () => {
-    const result = await solanaAdapter.getInstitutionDashboard(INSTITUTION.id);
-
-    if (result.ok) {
-      setState({ status: "success", data: result.value });
-      return;
-    }
-
-    setState({ status: "error", error: result.error });
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
+    try {
       const result = await solanaAdapter.getInstitutionDashboard(INSTITUTION.id);
-
-      if (cancelled) {
-        return;
-      }
 
       if (result.ok) {
         setState({ status: "success", data: result.value });
@@ -60,6 +45,33 @@ export function InstitutionDashboard() {
       }
 
       setState({ status: "error", error: result.error });
+    } catch (cause) {
+      setState({ status: "error", error: toAppError(cause) });
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const result = await solanaAdapter.getInstitutionDashboard(INSTITUTION.id);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (result.ok) {
+          setState({ status: "success", data: result.value });
+          return;
+        }
+
+        setState({ status: "error", error: result.error });
+      } catch (cause) {
+        if (!cancelled) {
+          setState({ status: "error", error: toAppError(cause) });
+        }
+      }
     }
 
     void load();
@@ -83,19 +95,26 @@ export function InstitutionDashboard() {
   async function handleWithdraw(amountCents: number) {
     setWithdrawError(null);
     setWithdrawSubmitting(true);
-    const result = await solanaAdapter.requestPjWithdrawal({
-      campaignId: CAMPAIGN.id,
-      amountCents,
-    });
-    setWithdrawSubmitting(false);
 
-    if (!result.ok) {
-      setWithdrawError(result.error.message);
+    try {
+      const result = await solanaAdapter.requestPjWithdrawal({
+        campaignId: CAMPAIGN.id,
+        amountCents,
+      });
+
+      if (!result.ok) {
+        setWithdrawError(result.error.message);
+        return false;
+      }
+
+      await applySnapshot();
+      return true;
+    } catch (cause) {
+      setWithdrawError(toAppError(cause).message);
       return false;
+    } finally {
+      setWithdrawSubmitting(false);
     }
-
-    await applySnapshot();
-    return true;
   }
 
   async function handlePaySupplier(input: {
@@ -106,19 +125,26 @@ export function InstitutionDashboard() {
   }) {
     setPayError(null);
     setPaySubmitting(true);
-    const result = await solanaAdapter.paySupplier({
-      campaignId: CAMPAIGN.id,
-      ...input,
-    });
-    setPaySubmitting(false);
 
-    if (!result.ok) {
-      setPayError(result.error.message);
+    try {
+      const result = await solanaAdapter.paySupplier({
+        campaignId: CAMPAIGN.id,
+        ...input,
+      });
+
+      if (!result.ok) {
+        setPayError(result.error.message);
+        return false;
+      }
+
+      await applySnapshot();
+      return true;
+    } catch (cause) {
+      setPayError(toAppError(cause).message);
       return false;
+    } finally {
+      setPaySubmitting(false);
     }
-
-    await applySnapshot();
-    return true;
   }
 
   async function handleAttach(input: {
@@ -128,29 +154,37 @@ export function InstitutionDashboard() {
   }) {
     setAttachError(null);
     setAttachSubmittingId(input.movementId);
-    const result = await solanaAdapter.attachInvoice(input);
-    setAttachSubmittingId(null);
 
-    if (!result.ok) {
-      setAttachError(result.error.message);
+    try {
+      const result = await solanaAdapter.attachInvoice(input);
+
+      if (!result.ok) {
+        setAttachError(result.error.message);
+        return false;
+      }
+
+      await applySnapshot();
+      return true;
+    } catch (cause) {
+      setAttachError(toAppError(cause).message);
       return false;
+    } finally {
+      setAttachSubmittingId(null);
     }
-
-    await applySnapshot();
-    return true;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-teal">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight break-words text-teal sm:text-3xl">
             {INSTITUTION.name} — CNPJ verificado
           </h1>
           <p className="mt-1 text-sm text-muted">CNPJ {INSTITUTION.cnpj}</p>
         </div>
         <Button
           variant="secondary"
+          className="w-full sm:w-auto"
           loading={isSigningOut}
           onClick={() => void handleSignOut()}
         >
@@ -159,22 +193,14 @@ export function InstitutionDashboard() {
       </header>
 
       {state.status === "loading" ? (
-        <p className="rounded-2xl border border-border bg-surface p-6 text-muted">
-          Carregando saldo on-chain...
-        </p>
+        <LoadingPanel message="Carregando saldo on-chain..." />
       ) : null}
 
       {state.status === "error" ? (
-        <div className="rounded-2xl border border-border bg-surface p-6">
-          <p className="text-sm text-red-800" role="alert">
-            {state.error.message}
-          </p>
-          <div className="mt-4">
-            <Button variant="secondary" onClick={() => void handleRetry()}>
-              Tentar novamente
-            </Button>
-          </div>
-        </div>
+        <ErrorPanel
+          message={state.error.message}
+          onRetry={() => void handleRetry()}
+        />
       ) : null}
 
       {state.status === "success" ? (

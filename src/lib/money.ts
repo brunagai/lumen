@@ -24,7 +24,7 @@ export function parseBrlAmount(input: string): Result<number> {
 
   if (!Number.isFinite(value) || value <= 0) {
     return err(
-      new AppError("INVALID_AMOUNT", "O valor da doação deve ser maior que zero."),
+      new AppError("INVALID_AMOUNT", "O valor deve ser maior que zero."),
     );
   }
 

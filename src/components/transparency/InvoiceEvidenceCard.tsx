@@ -36,7 +36,7 @@ export function InvoiceEvidenceCard({ invoice }: InvoiceEvidenceCardProps) {
         </div>
         <div className="sm:col-span-2">
           <dt className="text-muted">Emitente</dt>
-          <dd className="font-medium text-foreground">{invoice.issuer}</dd>
+          <dd className="font-medium break-words text-foreground">{invoice.issuer}</dd>
         </div>
       </dl>
       <a

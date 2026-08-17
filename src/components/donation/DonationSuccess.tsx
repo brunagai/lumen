@@ -9,11 +9,11 @@ type DonationSuccessProps = {
 
 export function DonationSuccess({ receipt }: DonationSuccessProps) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-8 text-center shadow-sm">
+    <section className="rounded-2xl border border-border bg-surface p-5 text-center shadow-sm sm:p-8">
       <p className="text-sm font-medium uppercase tracking-widest text-gold">
         Doação confirmada
       </p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-teal">
+      <h1 className="mt-3 text-2xl font-semibold tracking-tight text-teal sm:text-3xl">
         Muito Obrigado!
       </h1>
       <p className="mx-auto mt-3 max-w-lg text-muted">
@@ -23,7 +23,7 @@ export function DonationSuccess({ receipt }: DonationSuccessProps) {
       <div className="mt-8 flex justify-center">
         <Link
           href="/transparencia"
-          className="inline-flex items-center justify-center rounded-lg bg-teal px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal"
+          className="inline-flex w-full items-center justify-center rounded-lg bg-teal px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal sm:w-auto"
         >
           Acompanhar destino do dinheiro
         </Link>

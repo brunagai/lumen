@@ -47,7 +47,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="lumen-modal-title"
-        className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-lg"
+        className="relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-surface p-4 shadow-lg sm:p-6"
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <h2 id="lumen-modal-title" className="text-xl font-semibold text-teal">

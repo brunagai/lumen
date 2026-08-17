@@ -25,11 +25,11 @@ export function TransparencyScoreCard({ score }: TransparencyScoreCardProps) {
         : "bg-pending";
 
   return (
-    <article className="rounded-2xl border border-border bg-surface p-6">
+    <article className="rounded-2xl border border-border bg-surface p-4 sm:p-6">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
         Score de Transparência
       </h2>
-      <p className={`mt-2 text-3xl font-semibold tabular-nums ${scoreTone(score.value)}`}>
+      <p className={`mt-2 text-2xl font-semibold tabular-nums sm:text-3xl ${scoreTone(score.value)}`}>
         {score.value}/{score.max}
       </p>
       <div

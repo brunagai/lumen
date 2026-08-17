@@ -8,9 +8,10 @@ import {
 } from "@/adapters/solana";
 import { MacroMetrics } from "@/components/transparency/MacroMetrics";
 import { MovementTimeline } from "@/components/transparency/MovementTimeline";
-import { Button } from "@/components/ui/Button";
+import { ErrorPanel, LoadingPanel } from "@/components/ui/StatusPanel";
 import { CAMPAIGN } from "@/config/campaign";
 import type { AsyncState } from "@/lib/async-state";
+import { toAppError } from "@/lib/errors";
 
 export function TransparencyTrail() {
   const [state, setState] = useState<AsyncState<TransparencySnapshot>>({
@@ -18,25 +19,8 @@ export function TransparencyTrail() {
   });
 
   const applySnapshot = useCallback(async () => {
-    const result = await solanaAdapter.getTransparencySnapshot(CAMPAIGN.id);
-
-    if (result.ok) {
-      setState({ status: "success", data: result.value });
-      return;
-    }
-
-    setState({ status: "error", error: result.error });
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
+    try {
       const result = await solanaAdapter.getTransparencySnapshot(CAMPAIGN.id);
-
-      if (cancelled) {
-        return;
-      }
 
       if (result.ok) {
         setState({ status: "success", data: result.value });
@@ -44,6 +28,33 @@ export function TransparencyTrail() {
       }
 
       setState({ status: "error", error: result.error });
+    } catch (cause) {
+      setState({ status: "error", error: toAppError(cause) });
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const result = await solanaAdapter.getTransparencySnapshot(CAMPAIGN.id);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (result.ok) {
+          setState({ status: "success", data: result.value });
+          return;
+        }
+
+        setState({ status: "error", error: result.error });
+      } catch (cause) {
+        if (!cancelled) {
+          setState({ status: "error", error: toAppError(cause) });
+        }
+      }
     }
 
     void load();
@@ -61,7 +72,7 @@ export function TransparencyTrail() {
   return (
     <div className="flex flex-col gap-8">
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-teal">
+        <h1 className="text-2xl font-semibold tracking-tight text-teal sm:text-3xl">
           Trilha de Transparência
         </h1>
         <p className="mt-2 max-w-2xl text-muted">
@@ -82,22 +93,14 @@ export function TransparencyTrail() {
       </header>
 
       {state.status === "loading" ? (
-        <p className="rounded-2xl border border-border bg-surface p-6 text-muted">
-          Carregando movimentações on-chain...
-        </p>
+        <LoadingPanel message="Carregando movimentações on-chain..." />
       ) : null}
 
       {state.status === "error" ? (
-        <div className="rounded-2xl border border-border bg-surface p-6">
-          <p className="text-sm text-red-800" role="alert">
-            {state.error.message}
-          </p>
-          <div className="mt-4">
-            <Button variant="secondary" onClick={() => void handleRetry()}>
-              Tentar novamente
-            </Button>
-          </div>
-        </div>
+        <ErrorPanel
+          message={state.error.message}
+          onRetry={() => void handleRetry()}
+        />
       ) : null}
 
       {state.status === "success" ? (

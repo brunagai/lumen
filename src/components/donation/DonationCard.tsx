@@ -10,8 +10,10 @@ import { AmountSelector } from "@/components/donation/AmountSelector";
 import { DonationSuccess } from "@/components/donation/DonationSuccess";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/Button";
+import { ErrorPanel } from "@/components/ui/StatusPanel";
 import { CAMPAIGN } from "@/config/campaign";
 import type { AsyncState } from "@/lib/async-state";
+import { toAppError } from "@/lib/errors";
 import {
   brlToCents,
   formatBrlFromCents,
@@ -34,18 +36,22 @@ export function DonationCard() {
     async (donorId: string, amount: QuickDonationBrl) => {
       setDonateState({ status: "loading" });
 
-      const result = await solanaAdapter.confirmDonation({
-        campaignId: CAMPAIGN.id,
-        donorId,
-        amountCents: brlToCents(amount),
-      });
+      try {
+        const result = await solanaAdapter.confirmDonation({
+          campaignId: CAMPAIGN.id,
+          donorId,
+          amountCents: brlToCents(amount),
+        });
 
-      if (result.ok) {
-        setDonateState({ status: "success", data: result.value });
-        return;
+        if (result.ok) {
+          setDonateState({ status: "success", data: result.value });
+          return;
+        }
+
+        setDonateState({ status: "error", error: result.error });
+      } catch (cause) {
+        setDonateState({ status: "error", error: toAppError(cause) });
       }
-
-      setDonateState({ status: "error", error: result.error });
     },
     [],
   );
@@ -73,14 +79,22 @@ export function DonationCard() {
     void runDonation(nextSession.userId, selectedAmount);
   }
 
+  function handleRetry() {
+    if (!session || !selectedAmount) {
+      return;
+    }
+
+    void runDonation(session.userId, selectedAmount);
+  }
+
   if (donateState.status === "success") {
     return <DonationSuccess receipt={donateState.data} />;
   }
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold tracking-tight text-teal">
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-teal sm:text-3xl">
           {CAMPAIGN.title}
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
@@ -93,7 +107,7 @@ export function DonationCard() {
             <dt className="text-xs font-semibold uppercase tracking-wide text-teal">
               Arrecadado
             </dt>
-            <dd className="mt-1 text-xl font-semibold text-teal">
+            <dd className="mt-1 text-xl font-semibold break-words text-teal">
               {formatBrlFromCents(CAMPAIGN.raised.amountCents)}
             </dd>
           </div>
@@ -101,7 +115,7 @@ export function DonationCard() {
             <dt className="text-xs font-semibold uppercase tracking-wide text-muted">
               Meta
             </dt>
-            <dd className="mt-1 text-xl font-semibold text-foreground">
+            <dd className="mt-1 text-xl font-semibold break-words text-foreground">
               {formatBrlFromCents(CAMPAIGN.goal.amountCents)}
             </dd>
           </div>
@@ -122,14 +136,24 @@ export function DonationCard() {
           />
         </div>
 
-        {donateState.status === "error" ? (
-          <p className="mt-4 text-sm text-red-800" role="alert">
-            {donateState.error.message}
+        {!selectedAmount ? (
+          <p className="mt-3 text-sm text-muted">
+            Selecione um valor para continuar.
           </p>
+        ) : null}
+
+        {donateState.status === "error" ? (
+          <div className="mt-4">
+            <ErrorPanel
+              message={donateState.error.message}
+              onRetry={session ? handleRetry : undefined}
+            />
+          </div>
         ) : null}
 
         <div className="mt-6">
           <Button
+            className="w-full sm:w-auto"
             onClick={handleEnterToDonate}
             disabled={!selectedAmount}
             loading={isDonating}

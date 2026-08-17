@@ -6,6 +6,7 @@ import { canAccessInstitutionPortal } from "@/adapters/auth";
 import { InstitutionDashboard } from "@/components/institution/InstitutionDashboard";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/Button";
+import { LoadingPanel } from "@/components/ui/StatusPanel";
 
 export function InstitutionGate() {
   const { session, status, error, signInAsInstitution } = useAuth();
@@ -18,19 +19,15 @@ export function InstitutionGate() {
   }
 
   if (status === "loading") {
-    return (
-      <section className="rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <p className="text-muted">Verificando acesso...</p>
-      </section>
-    );
+    return <LoadingPanel message="Verificando acesso..." />;
   }
 
   if (!canAccessInstitutionPortal(session)) {
     const isDonor = session?.role === "donor";
 
     return (
-      <section className="rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold tracking-tight text-teal">
+      <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-teal sm:text-3xl">
           Acesso restrito
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
@@ -45,6 +42,7 @@ export function InstitutionGate() {
         ) : null}
         <div className="mt-6">
           <Button
+            className="w-full sm:w-auto"
             onClick={() => void handleSimulateAccess()}
             loading={isSigningIn}
           >

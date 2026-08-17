@@ -20,7 +20,7 @@ export function SessionStatus() {
   }
 
   return (
-    <div className="flex items-center gap-2 border-l border-border pl-3">
+    <div className="flex items-center gap-2 sm:border-l sm:border-border sm:pl-3">
       <span className="text-sm text-muted">{session.displayName}</span>
       <Button
         variant="ghost"

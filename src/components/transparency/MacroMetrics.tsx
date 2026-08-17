@@ -29,7 +29,7 @@ const CARDS = [
 export function MacroMetrics({ metrics }: MacroMetricsProps) {
   return (
     <section aria-label="Métricas da campanha">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         {CARDS.map((card) => {
           const value = metrics[card.key];
           const cardClass =
@@ -47,7 +47,7 @@ export function MacroMetrics({ metrics }: MacroMetricsProps) {
               <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
                 {card.label}
               </h2>
-              <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">
+              <p className="mt-2 text-2xl font-semibold break-words tabular-nums text-foreground">
                 {formatBrlFromCents(value)}
               </p>
               <p className="mt-1 text-sm text-muted">{card.hint}</p>

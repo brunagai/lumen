@@ -32,7 +32,14 @@ export function WithdrawForm({
       return;
     }
 
-    const succeeded = await onSubmit(Math.round(parsed.value * 100));
+    const amountCents = Math.round(parsed.value * 100);
+
+    if (amountCents > availableCents) {
+      setLocalError("Saldo on-chain insuficiente para este valor.");
+      return;
+    }
+
+    const succeeded = await onSubmit(amountCents);
 
     if (succeeded) {
       setAmount("");
@@ -42,7 +49,7 @@ export function WithdrawForm({
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6"
+      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:p-6"
     >
       <div>
         <h2 className="text-lg font-semibold text-teal">Saque para conta PJ</h2>
@@ -61,7 +68,9 @@ export function WithdrawForm({
         />
       </Field>
       <p className="text-xs text-muted">
-        Disponível: {formatBrlFromCents(availableCents)}
+        {availableCents <= 0
+          ? "Não há saldo disponível para saque."
+          : `Disponível: ${formatBrlFromCents(availableCents)}`}
       </p>
       {localError || errorMessage ? (
         <p className="text-sm text-red-800" role="alert">
@@ -70,6 +79,7 @@ export function WithdrawForm({
       ) : null}
       <Button
         type="submit"
+        className="w-full sm:w-auto"
         loading={submitting}
         disabled={availableCents <= 0}
       >

@@ -6,8 +6,7 @@ import {
 } from "@/adapters/auth/types";
 import { INSTITUTION } from "@/config/campaign";
 import { delay } from "@/lib/delay";
-import { shouldForceMockFailure } from "@/lib/env";
-import { AppError, toAppError } from "@/lib/errors";
+import { toAppError } from "@/lib/errors";
 import { err, ok, type Result } from "@/lib/result";
 
 const STORAGE_KEY = "lumen.auth.session";
@@ -49,12 +48,6 @@ function writeStoredSession(session: Session | null): void {
 async function withSimulatedNetwork<T>(operation: () => T): Promise<Result<T>> {
   try {
     await delay(MOCK_LATENCY_MS);
-
-    if (shouldForceMockFailure()) {
-      return err(
-        new AppError("MOCK_FAILURE", "Falha simulada na autenticação."),
-      );
-    }
 
     return ok(operation());
   } catch (cause) {

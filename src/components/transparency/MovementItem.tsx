@@ -14,7 +14,7 @@ export function MovementItem({ movement }: MovementItemProps) {
   const amountClass = isInflow ? "text-inflow" : "text-outflow";
 
   return (
-    <article className="relative pl-8">
+    <article className="relative pl-7 sm:pl-8">
       <span
         aria-hidden="true"
         className={`absolute top-2 left-0 h-3 w-3 rounded-full ${
@@ -25,22 +25,22 @@ export function MovementItem({ movement }: MovementItemProps) {
               : "bg-inflow"
         }`}
       />
-      <div className="rounded-2xl border border-border bg-surface p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+      <div className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               {isInflow ? "Entrada" : "Saída"}
             </p>
-            <h3 className="mt-1 text-base font-semibold text-foreground">
+            <h3 className="mt-1 text-base font-semibold break-words text-foreground">
               {movement.description}
             </h3>
             {movement.supplierName ? (
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1 text-sm break-words text-muted">
                 Fornecedor: {movement.supplierName}
               </p>
             ) : null}
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className={`text-lg font-semibold tabular-nums ${amountClass}`}>
               {amountPrefix}
               {formatBrlFromCents(movement.amount.amountCents)}
@@ -58,7 +58,7 @@ export function MovementItem({ movement }: MovementItemProps) {
               href={movement.explorerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-teal underline-offset-2 hover:underline"
+              className="text-sm font-medium break-all text-teal underline-offset-2 hover:underline"
             >
               Tx {shortenSignature(movement.txSignature)} na Devnet
             </a>

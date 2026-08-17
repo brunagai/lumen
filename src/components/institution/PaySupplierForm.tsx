@@ -44,11 +44,28 @@ export function PaySupplierForm({
       return;
     }
 
+    if (description.trim().length < 8) {
+      setLocalError("Descreva a despesa com pelo menos 8 caracteres.");
+      return;
+    }
+
+    if (invoiceNumber.trim().length < 3) {
+      setLocalError("Informe o número da nota fiscal.");
+      return;
+    }
+
+    const amountCents = Math.round(parsed.value * 100);
+
+    if (amountCents > availableCents) {
+      setLocalError("Saldo on-chain insuficiente para este valor.");
+      return;
+    }
+
     const succeeded = await onSubmit({
       supplierName,
       description,
       invoiceNumber,
-      amountCents: Math.round(parsed.value * 100),
+      amountCents,
     });
 
     if (succeeded) {
@@ -61,7 +78,7 @@ export function PaySupplierForm({
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6"
+      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:p-6"
     >
       <div>
         <h2 className="text-lg font-semibold text-teal">Pagar fornecedor</h2>
@@ -109,14 +126,21 @@ export function PaySupplierForm({
         />
       </Field>
       <p className="text-xs text-muted">
-        Disponível: {formatBrlFromCents(availableCents)}
+        {availableCents <= 0
+          ? "Não há saldo disponível para pagamento."
+          : `Disponível: ${formatBrlFromCents(availableCents)}`}
       </p>
       {localError || errorMessage ? (
         <p className="text-sm text-red-800" role="alert">
           {localError ?? errorMessage}
         </p>
       ) : null}
-      <Button type="submit" loading={submitting} disabled={availableCents <= 0}>
+      <Button
+        type="submit"
+        className="w-full sm:w-auto"
+        loading={submitting}
+        disabled={availableCents <= 0}
+      >
         Registrar pagamento
       </Button>
     </form>

@@ -13,11 +13,11 @@ export function OnChainBalanceCard({
   const clusterLabel = cluster === "devnet" ? "Solana Devnet" : cluster;
 
   return (
-    <article className="rounded-2xl border border-border bg-teal-soft p-6">
+    <article className="rounded-2xl border border-border bg-teal-soft p-4 sm:p-6">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-teal">
         Saldo disponível on-chain
       </h2>
-      <p className="mt-2 text-3xl font-semibold tabular-nums text-teal">
+      <p className="mt-2 text-2xl font-semibold break-words tabular-nums text-teal sm:text-3xl">
         {formatBrlFromCents(balance.availableBrlCents)}
       </p>
       <p className="mt-2 text-sm text-muted">
