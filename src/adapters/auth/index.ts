@@ -1,8 +1,9 @@
-export { mockAuthAdapter as authAdapter } from "@/adapters/auth/mock";
+export { httpAuthAdapter as authAdapter } from "@/adapters/auth/http";
 export {
   canAccessInstitutionPortal,
   requireInstitutionRole,
   sessionSchema,
+  signInInputSchema,
   type AuthMethod,
   type AuthPort,
   type Session,

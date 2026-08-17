@@ -40,11 +40,12 @@ Essa é a tese do produto: o doador vê entrada, uso e comprovante no mesmo luga
 
 ### 3. Prestar contas no Dashboard (`/instituicao`)
 
-1. Clique em **Entrar como Casa da Mulher**. O guard bloqueia doadora e visitante.
-2. Mostre o **saldo on-chain** (R$ e USDC simulado na Solana Devnet) e o **Score de Transparência** (começa em 92/100 por causa da NF pendente).
-3. **Saque para conta PJ:** informe um valor (ex.: `200`) e solicite o saque. O saldo cai, o score cai e a trilha ganha uma saída **Pendente**.
-4. **Pagar fornecedor:** escolha um homologado, descreva a despesa, informe a NF e o valor. A cadeia fecha na hora.
-5. **Anexar recibo:** preencha número e emitente da pendência e clique em **Anexar e fechar cadeia**. O score sobe e a trilha pública atualiza.
+1. Clique em **Instituição** no menu. Sem sessão institucional, o servidor redireciona para a Home com o cartão **Acesso restrito**.
+2. Clique em **Entrar como Casa da Mulher**. O login grava um cookie httpOnly assinado no servidor.
+3. Mostre o **saldo on-chain** (R$ e USDC simulado na Solana Devnet) e o **Score de Transparência** (começa em 92/100 por causa da NF pendente).
+4. **Saque para conta PJ:** informe um valor (ex.: `200`) e solicite o saque. O saldo cai, o score cai e a trilha ganha uma saída **Pendente**.
+5. **Pagar fornecedor:** escolha um homologado, descreva a despesa, informe a NF e o valor. A cadeia fecha na hora.
+6. **Anexar recibo:** preencha número e emitente da pendência e clique em **Anexar e fechar cadeia**. O score sobe e a trilha pública atualiza.
 
 Formulários vazios ou valor acima do saldo são recusados na hora, sem chamar a rede.
 
@@ -64,13 +65,14 @@ A autenticação continua funcionando. As chamadas ao adapter da Solana falham c
 
 - `/` — vitrine da campanha
 - `/transparencia` — trilha pública
-- `/instituicao` — dashboard da Casa da Mulher
+- `/instituicao` — dashboard da Casa da Mulher (protegido no servidor)
 
 ## Arquitetura
 
 A UI não fala com Solana nem com Privy diretamente. Tudo passa por adapters:
 
-- `src/adapters/auth` — contrato de autenticação + mock
+- `src/adapters/auth` — contrato de autenticação; o client chama `/api/auth/*`
 - `src/adapters/solana` — contrato on-chain + mock (Devnet)
+- `src/proxy.ts` — no Next.js 16 o antigo `middleware.ts` virou Proxy; intercepta `/instituicao` e exige `role === "institution"` no cookie assinado
 
-Variáveis públicas são validadas em `src/lib/env.ts`. Não coloque chaves privadas no client. Copie apenas `.env.example` para `.env.local`.
+Variáveis públicas são validadas em `src/lib/env.ts`. O cookie de sessão usa `SESSION_SECRET` só no servidor. Não coloque chaves privadas no client. Copie apenas `.env.example` para `.env.local`.

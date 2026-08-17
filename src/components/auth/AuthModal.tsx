@@ -61,7 +61,7 @@ export function AuthModal({ open, onClose, onAuthenticated }: AuthModalProps) {
     <Modal open={open} title="Entrar para doar" onClose={handleClose}>
       <p className="mb-5 text-sm text-muted">
         Escolha como entrar. Este modal simula o fluxo do Privy (e-mail, Google
-        ou carteira) e grava a sessão localmente.
+        ou carteira) e grava a sessão em cookie httpOnly no servidor.
       </p>
       <ul className="flex flex-col gap-2">
         {AUTH_OPTIONS.map((option) => (

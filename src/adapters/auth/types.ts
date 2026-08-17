@@ -18,10 +18,12 @@ export const sessionSchema = z.object({
 
 export type Session = z.infer<typeof sessionSchema>;
 
-export type SignInInput = {
-  method: AuthMethod;
-  role: UserRole;
-};
+export const signInInputSchema = z.object({
+  method: z.enum(AUTH_METHODS),
+  role: z.enum(USER_ROLES),
+});
+
+export type SignInInput = z.infer<typeof signInInputSchema>;
 
 export type AuthPort = {
   getSession(): Promise<Result<Session | null>>;

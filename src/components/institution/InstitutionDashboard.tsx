@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { canAccessInstitutionPortal, type Session } from "@/adapters/auth";
@@ -21,6 +22,7 @@ import { runResult } from "@/lib/async-state";
 import type { Result } from "@/lib/result";
 
 export function InstitutionDashboard() {
+  const router = useRouter();
   const { session, signOut } = useAuth();
   const { state, reload, retry } = useAsyncResult<InstitutionDashboardSnapshot>(
     () => solanaAdapter.getInstitutionDashboard(INSTITUTION.id),
@@ -63,8 +65,13 @@ export function InstitutionDashboard() {
 
   async function handleSignOut() {
     setIsSigningOut(true);
-    await signOut();
+    const result = await signOut();
     setIsSigningOut(false);
+
+    if (result.ok) {
+      router.replace("/");
+      router.refresh();
+    }
   }
 
   async function handleWithdraw(amountCents: number) {
