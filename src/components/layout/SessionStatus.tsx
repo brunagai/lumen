@@ -1,0 +1,35 @@
+"use client";
+
+import { useState } from "react";
+
+import { useAuth } from "@/components/providers/auth-provider";
+import { Button } from "@/components/ui/Button";
+
+export function SessionStatus() {
+  const { session, status, signOut } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  if (status === "loading" || !session) {
+    return null;
+  }
+
+  async function handleSignOut() {
+    setIsSigningOut(true);
+    await signOut();
+    setIsSigningOut(false);
+  }
+
+  return (
+    <div className="flex items-center gap-2 border-l border-border pl-3">
+      <span className="text-sm text-muted">{session.displayName}</span>
+      <Button
+        variant="ghost"
+        className="px-2 py-1"
+        loading={isSigningOut}
+        onClick={() => void handleSignOut()}
+      >
+        Sair
+      </Button>
+    </div>
+  );
+}

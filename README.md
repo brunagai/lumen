@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lúmen.
 
-## Getting Started
+Plataforma de doações transparentes e rastreáveis baseada em Solana.
 
-First, run the development server:
+## Como executar
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Rotas
 
-## Learn More
+- `/` — vitrine da campanha *Fundo de Amparo: Casa da Mulher* (seletor de valores, auth e confirmação on-chain)
+- `/transparencia` — trilha pública
+- `/instituicao` — portal da instituição (protegido)
 
-To learn more about Next.js, take a look at the following resources:
+Na Home, escolha R$ 10, R$ 50 ou R$ 100 e use **Entrar para Doar**. O modal simula Privy (e-mail, Google ou carteira), persiste a sessão no `localStorage` e registra a doação via adapter da Solana. O header mostra a sessão ativa.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+No portal da instituição, use **Simular acesso da instituição** para validar o dashboard.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Arquitetura
 
-## Deploy on Vercel
+A UI não fala com Solana nem com Privy diretamente. Tudo passa por adapters:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/adapters/auth` — contrato de autenticação + mock
+- `src/adapters/solana` — contrato on-chain + mock (Devnet)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Variáveis públicas são validadas em `src/lib/env.ts`. Não coloque chaves privadas no client.
+
+## Próximas etapas
+
+- Métricas e timeline da trilha pública
+- Saldo, nota fiscal e liberação a fornecedores no dashboard
