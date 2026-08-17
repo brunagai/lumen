@@ -26,11 +26,13 @@ import {
   createMockSignature,
   findMovement,
   getExplorerTxUrl,
+  paginateTransparencySnapshot,
   saveInvoicePatch,
   toOnChainBalance,
 } from "@/lib/ledger-core";
 import type { LedgerState } from "@/lib/ledger-state";
 import { brlToCents, isAllowedQuickDonationBrl } from "@/lib/money";
+import type { LedgerPageQuery } from "@/lib/pagination";
 import { buildReceiptUrl } from "@/lib/receipt-signature";
 import { err, ok, type Result } from "@/lib/result";
 
@@ -47,12 +49,19 @@ function isApprovedSupplier(name: string): boolean {
 export function readTransparencySnapshot(
   state: LedgerState,
   campaignId: string,
+  options?: LedgerPageQuery,
 ): Result<TransparencySnapshot> {
   if (campaignId !== CAMPAIGN.id) {
     return err(new AppError("NOT_FOUND", "Campanha não encontrada."));
   }
 
-  return ok(buildTransparencySnapshot(state, campaignId));
+  return ok(
+    paginateTransparencySnapshot(
+      buildTransparencySnapshot(state, campaignId),
+      options?.page,
+      options?.pageSize,
+    ),
+  );
 }
 
 export function readOnChainBalance(

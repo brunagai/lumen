@@ -1,11 +1,13 @@
 import { AppError, toAppError } from "@/lib/errors";
+import { parseLedgerPageSearchParams } from "@/lib/pagination";
 import { err } from "@/lib/result";
 import { jsonApiResult } from "@/server/auth-http";
 import { getTransparencySnapshotFromStore } from "@/server/ledger-service";
 
 export async function GET(request: Request) {
   try {
-    const campaignId = new URL(request.url).searchParams.get("campaignId");
+    const searchParams = new URL(request.url).searchParams;
+    const campaignId = searchParams.get("campaignId");
 
     if (!campaignId) {
       return jsonApiResult(
@@ -13,7 +15,12 @@ export async function GET(request: Request) {
       );
     }
 
-    return jsonApiResult(await getTransparencySnapshotFromStore(campaignId));
+    return jsonApiResult(
+      await getTransparencySnapshotFromStore(
+        campaignId,
+        parseLedgerPageSearchParams(searchParams),
+      ),
+    );
   } catch (cause) {
     return jsonApiResult(err(toAppError(cause)));
   }

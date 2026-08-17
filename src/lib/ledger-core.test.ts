@@ -8,6 +8,7 @@ import {
   buildTransparencySnapshot,
   commitAffordableOutflow,
   computeTransparencyScore,
+  paginateTransparencySnapshot,
 } from "@/lib/ledger-core";
 import { emptyLedgerState, type LedgerState } from "@/lib/ledger-state";
 import type { Donation, Movement, MovementStatus } from "@/domain/types";
@@ -214,5 +215,20 @@ describe("centralized ledger integrity and outflow commits", () => {
       buildTransparencySnapshot(first.value.state, CAMPAIGN.id).metrics
         .availableCents,
     ).toBe(0);
+  });
+
+  it("keeps full-ledger metrics when the movement list is paginated", () => {
+    const snapshot = buildTransparencySnapshot(emptyLedgerState(), CAMPAIGN.id);
+    const paged = paginateTransparencySnapshot(snapshot, 1, 3);
+
+    expect(paged.metrics).toEqual(snapshot.metrics);
+    expect(paged.movements).toHaveLength(3);
+    expect(paged.page).toEqual({
+      page: 1,
+      pageSize: 3,
+      total: snapshot.movements.length,
+      hasMore: true,
+    });
+    expect(paged.movements[0]?.id).toBe(snapshot.movements[0]?.id);
   });
 });

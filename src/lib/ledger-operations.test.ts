@@ -8,6 +8,7 @@ import {
   confirmDonation,
   paySupplier,
   readInstitutionDashboard,
+  readTransparencySnapshot,
   requestPjWithdrawal,
 } from "@/lib/ledger-operations";
 import { emptyLedgerState } from "@/lib/ledger-state";
@@ -163,5 +164,41 @@ describe("ledger operations against the centralized store", () => {
     expect(result.value.value.status).toBe("chain_closed");
     expect(result.value.value.invoice?.number).toBe("NF 2026/0401");
     expect(result.value.value.invoice?.documentUrl).toContain("sig=");
+  });
+
+  it("paginates the public transparency trail without changing balances", () => {
+    const donated = confirmDonation(emptyLedgerState(), donor, {
+      campaignId: CAMPAIGN.id,
+      amountCents: 10_000,
+    });
+
+    expect(donated.ok).toBe(true);
+    if (!donated.ok) {
+      return;
+    }
+
+    const full = readTransparencySnapshot(donated.value.state, CAMPAIGN.id, {
+      page: 1,
+      pageSize: 50,
+    });
+    const paged = readTransparencySnapshot(donated.value.state, CAMPAIGN.id, {
+      page: 2,
+      pageSize: 3,
+    });
+
+    expect(full.ok).toBe(true);
+    expect(paged.ok).toBe(true);
+    if (!full.ok || !paged.ok) {
+      return;
+    }
+
+    expect(paged.value.metrics).toEqual(full.value.metrics);
+    expect(paged.value.movements).toEqual(full.value.movements.slice(3, 6));
+    expect(paged.value.page).toEqual({
+      page: 2,
+      pageSize: 3,
+      total: full.value.movements.length,
+      hasMore: true,
+    });
   });
 });

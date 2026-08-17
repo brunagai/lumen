@@ -3,6 +3,10 @@ import "server-only";
 import { z } from "zod";
 
 import { sessionSchema } from "@/adapters/auth/types";
+import {
+  getLedgerRepository,
+  type LedgerRepository,
+} from "@/adapters/ledger/ledger-repository";
 import { shouldForceMockFailure } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import {
@@ -14,14 +18,10 @@ import {
   readTransparencySnapshot,
   requestPjWithdrawal,
 } from "@/lib/ledger-operations";
+import type { LedgerPageQuery } from "@/lib/pagination";
 import { err, ok, type Result } from "@/lib/result";
 import { MOCK_NETWORK_FAILURE } from "@/lib/simulated-network";
 import { verifyPresentedSession } from "@/server/auth-service";
-import {
-  loadLedgerState,
-  saveLedgerState,
-  withLedgerLock,
-} from "@/server/ledger-store";
 import { readSessionCookie } from "@/server/session-cookie";
 
 const donationBodySchema = z.object({
@@ -52,6 +52,10 @@ const invoiceBodySchema = z.object({
   session: sessionSchema,
 });
 
+function ledgerRepository(): LedgerRepository {
+  return getLedgerRepository();
+}
+
 function rejectForcedFailure(): AppError | null {
   if (!shouldForceMockFailure()) {
     return null;
@@ -62,30 +66,37 @@ function rejectForcedFailure(): AppError | null {
 
 async function commitMutation<T>(
   mutate: (
-    state: Awaited<ReturnType<typeof loadLedgerState>>,
-  ) => Result<{ value: T; state: Awaited<ReturnType<typeof loadLedgerState>> }>,
+    state: Awaited<ReturnType<LedgerRepository["load"]>>,
+  ) => Result<{ value: T; state: Awaited<ReturnType<LedgerRepository["load"]>> }>,
 ): Promise<Result<T>> {
-  return withLedgerLock(async () => {
-    const result = mutate(await loadLedgerState());
+  const repository = ledgerRepository();
+
+  return repository.withLock(async () => {
+    const result = mutate(await repository.load());
 
     if (!result.ok) {
       return result;
     }
 
-    await saveLedgerState(result.value.state);
+    await repository.save(result.value.state);
     return ok(result.value.value);
   });
 }
 
-export async function getTransparencySnapshotFromStore(campaignId: string) {
+export async function getTransparencySnapshotFromStore(
+  campaignId: string,
+  options?: LedgerPageQuery,
+) {
   const forced = rejectForcedFailure();
 
   if (forced) {
     return err(forced);
   }
 
-  return withLedgerLock(async () =>
-    readTransparencySnapshot(await loadLedgerState(), campaignId),
+  const repository = ledgerRepository();
+
+  return repository.withLock(async () =>
+    readTransparencySnapshot(await repository.load(), campaignId, options),
   );
 }
 
@@ -97,8 +108,10 @@ export async function getOnChainBalanceFromStore(institutionId: string) {
     return err(forced);
   }
 
-  return withLedgerLock(async () =>
-    readOnChainBalance(await loadLedgerState(), session, institutionId),
+  const repository = ledgerRepository();
+
+  return repository.withLock(async () =>
+    readOnChainBalance(await repository.load(), session, institutionId),
   );
 }
 
@@ -110,8 +123,10 @@ export async function getInstitutionDashboardFromStore(institutionId: string) {
     return err(forced);
   }
 
-  return withLedgerLock(async () =>
-    readInstitutionDashboard(await loadLedgerState(), session, institutionId),
+  const repository = ledgerRepository();
+
+  return repository.withLock(async () =>
+    readInstitutionDashboard(await repository.load(), session, institutionId),
   );
 }
 

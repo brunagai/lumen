@@ -18,6 +18,7 @@ import {
   emptyLedgerState,
   type LedgerState,
 } from "@/lib/ledger-state";
+import { paginateList } from "@/lib/pagination";
 import { err, ok, type Result } from "@/lib/result";
 import { evidenceUrlSchema } from "@/lib/safe-url";
 
@@ -76,6 +77,13 @@ export const donationReceiptSchema = z.object({
   explorerUrl: z.string().min(1),
 });
 
+export const ledgerPageSchema = z.object({
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  hasMore: z.boolean(),
+});
+
 export const transparencySnapshotSchema = z.object({
   metrics: z.object({
     raisedCents: z.number().int().nonnegative(),
@@ -83,6 +91,7 @@ export const transparencySnapshotSchema = z.object({
     availableCents: z.number().int().nonnegative(),
   }),
   movements: z.array(movementRecordSchema),
+  page: ledgerPageSchema,
 });
 
 export const onChainBalanceSchema = z.object({
@@ -294,13 +303,35 @@ export function buildTransparencySnapshot(
     .filter((movement) => movement.kind === "outflow")
     .reduce((total, movement) => total + movement.amount.amountCents, 0);
 
+  const records = movements.map(toMovementRecord);
+
   return {
     metrics: {
       raisedCents,
       usedCents,
       availableCents: Math.max(raisedCents - usedCents, 0),
     },
-    movements: movements.map(toMovementRecord),
+    movements: records,
+    page: {
+      page: 1,
+      pageSize: records.length || 1,
+      total: records.length,
+      hasMore: false,
+    },
+  };
+}
+
+export function paginateTransparencySnapshot(
+  snapshot: TransparencySnapshot,
+  page?: number,
+  pageSize?: number,
+): TransparencySnapshot {
+  const paged = paginateList(snapshot.movements, page, pageSize);
+
+  return {
+    metrics: snapshot.metrics,
+    movements: paged.items,
+    page: paged.page,
   };
 }
 

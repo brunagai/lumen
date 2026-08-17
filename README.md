@@ -73,8 +73,9 @@ A UI não fala com Solana nem com Privy diretamente. Tudo passa por adapters:
 
 - `src/adapters/auth` — contrato de autenticação; o client chama `/api/auth/*`
 - `src/adapters/solana` — contrato on-chain; o client chama `/api/ledger/*`
+- `src/adapters/ledger` — persistência do ledger (`LedgerRepository`); JSON hoje, banco relacional depois
 - `src/proxy.ts` — no Next.js 16 o antigo `middleware.ts` virou Proxy; intercepta `/instituicao` e exige `role === "institution"` no cookie assinado
 
-O ledger (doações, saques, pagamentos e notas) vive no servidor, em memória com persistência JSON em `.data/ledger.json`. Mutações exigem o cookie de sessão e, nas operações da instituição, `role === "institution"`. Recibos em `/comprovantes/recibo` só são exibidos com HMAC válido. A CSP é emitida por requisição no Proxy, com nonce e sem `'unsafe-inline'`.
+O ledger (doações, saques, pagamentos e notas) vive no servidor. As rotas em `src/app/api/ledger/` só fazem HTTP: o acesso ao estado passa pela interface `LedgerRepository` (`src/adapters/ledger/ledger-repository.ts`). A implementação atual persiste em `.data/ledger.json`; um adaptador Prisma/PostgreSQL pode substituí-la sem mudar as rotas. A trilha pública pagina movimentações (`page` e `pageSize`, até 50 por página). Mutações exigem o cookie de sessão e, nas operações da instituição, `role === "institution"`. Recibos em `/comprovantes/recibo` só são exibidos com HMAC válido. A CSP é emitida por requisição no Proxy, com nonce e sem `'unsafe-inline'`.
 
 Variáveis públicas são validadas em `src/lib/env.ts`. O cookie de sessão usa `SESSION_SECRET` só no servidor. Não coloque chaves privadas no client. Copie apenas `.env.example` para `.env.local`.

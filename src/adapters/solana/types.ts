@@ -6,6 +6,7 @@ import type {
   Movement,
 } from "@/domain/types";
 import type { PublicEnv } from "@/lib/env";
+import type { LedgerPage, LedgerPageQuery } from "@/lib/pagination";
 import type { Result } from "@/lib/result";
 
 export type SolanaCluster = PublicEnv["NEXT_PUBLIC_SOLANA_CLUSTER"];
@@ -39,6 +40,7 @@ export type MovementRecord = Movement & {
 export type TransparencySnapshot = {
   metrics: TransparencyMetrics;
   movements: MovementRecord[];
+  page: LedgerPage;
 };
 
 export type TransparencyScore = {
@@ -88,6 +90,7 @@ export type SolanaPort = {
   ): Promise<Result<DonationReceipt>>;
   getTransparencySnapshot(
     campaignId: CampaignId,
+    options?: LedgerPageQuery,
   ): Promise<Result<TransparencySnapshot>>;
   getInstitutionDashboard(
     institutionId: InstitutionId,

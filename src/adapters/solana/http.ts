@@ -77,8 +77,16 @@ export const httpSolanaAdapter: SolanaPort = {
     );
   },
 
-  async getTransparencySnapshot(campaignId) {
+  async getTransparencySnapshot(campaignId, options) {
     const params = new URLSearchParams({ campaignId });
+
+    if (options?.page) {
+      params.set("page", String(options.page));
+    }
+
+    if (options?.pageSize) {
+      params.set("pageSize", String(options.pageSize));
+    }
 
     return requestLedgerApi(
       `/api/ledger/transparency?${params.toString()}`,
