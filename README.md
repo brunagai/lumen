@@ -75,6 +75,6 @@ A UI não fala com Solana nem com Privy diretamente. Tudo passa por adapters:
 - `src/adapters/solana` — contrato on-chain; o client chama `/api/ledger/*`
 - `src/proxy.ts` — no Next.js 16 o antigo `middleware.ts` virou Proxy; intercepta `/instituicao` e exige `role === "institution"` no cookie assinado
 
-O ledger (doações, saques, pagamentos e notas) vive no servidor, em memória com persistência JSON em `.data/ledger.json`. Mutações exigem o cookie de sessão e, nas operações da instituição, `role === "institution"`.
+O ledger (doações, saques, pagamentos e notas) vive no servidor, em memória com persistência JSON em `.data/ledger.json`. Mutações exigem o cookie de sessão e, nas operações da instituição, `role === "institution"`. Recibos em `/comprovantes/recibo` só são exibidos com HMAC válido. A CSP é emitida por requisição no Proxy, com nonce e sem `'unsafe-inline'`.
 
 Variáveis públicas são validadas em `src/lib/env.ts`. O cookie de sessão usa `SESSION_SECRET` só no servidor. Não coloque chaves privadas no client. Copie apenas `.env.example` para `.env.local`.

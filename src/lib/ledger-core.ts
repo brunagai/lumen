@@ -139,22 +139,6 @@ export function getExplorerTxUrl(signature: string): string {
   return url.toString();
 }
 
-export function buildReceiptUrl(invoice: {
-  number: string;
-  issuer: string;
-  amountCents: number;
-  issuedAt: string;
-}): string {
-  const params = new URLSearchParams({
-    numero: invoice.number,
-    emitente: invoice.issuer,
-    valor: String(invoice.amountCents),
-    data: invoice.issuedAt,
-  });
-
-  return `/comprovantes/recibo?${params.toString()}`;
-}
-
 export function appendDonation(
   state: LedgerState,
   donation: Donation,

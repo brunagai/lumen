@@ -162,5 +162,6 @@ describe("ledger operations against the centralized store", () => {
 
     expect(result.value.value.status).toBe("chain_closed");
     expect(result.value.value.invoice?.number).toBe("NF 2026/0401");
+    expect(result.value.value.invoice?.documentUrl).toContain("sig=");
   });
 });

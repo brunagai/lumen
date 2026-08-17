@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
 
 import { Header } from "@/components/layout/Header";
@@ -24,11 +25,12 @@ export const metadata: Metadata = {
     "Plataforma de doações transparentes e rastreáveis baseada em Solana.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  await connection();
   getPublicEnv();
 
   return (

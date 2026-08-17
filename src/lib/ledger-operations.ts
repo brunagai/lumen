@@ -20,7 +20,6 @@ import { AppError } from "@/lib/errors";
 import { authorizeLedgerAccess } from "@/lib/ledger-auth";
 import {
   appendDonation,
-  buildReceiptUrl,
   buildTransparencySnapshot,
   commitAffordableOutflow,
   computeTransparencyScore,
@@ -32,6 +31,7 @@ import {
 } from "@/lib/ledger-core";
 import type { LedgerState } from "@/lib/ledger-state";
 import { brlToCents, isAllowedQuickDonationBrl } from "@/lib/money";
+import { buildReceiptUrl } from "@/lib/receipt-signature";
 import { err, ok, type Result } from "@/lib/result";
 
 export type LedgerMutationResult<T> = Result<{ value: T; state: LedgerState }>;
