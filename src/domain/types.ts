@@ -14,7 +14,6 @@ export type Campaign = {
   institutionId: InstitutionId;
   institutionName: string;
   goal: Money;
-  raised: Money;
 };
 
 export type Donation = {

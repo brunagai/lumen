@@ -9,15 +9,7 @@ import {
 } from "@/lib/async-state";
 import type { Result } from "@/lib/result";
 
-type UseAsyncResultOptions = {
-  immediate?: boolean;
-};
-
-export function useAsyncResult<T>(
-  query: () => Promise<Result<T>>,
-  options: UseAsyncResultOptions = {},
-) {
-  const immediate = options.immediate ?? true;
+export function useAsyncResult<T>(query: () => Promise<Result<T>>) {
   const queryRef = useRef(query);
 
   useEffect(() => {
@@ -25,7 +17,7 @@ export function useAsyncResult<T>(
   }, [query]);
 
   const [state, setState] = useState<AsyncState<T>>({
-    status: immediate ? "loading" : "idle",
+    status: "loading",
   });
 
   const reload = useCallback(async (reloadOptions?: { silent?: boolean }) => {
@@ -41,10 +33,6 @@ export function useAsyncResult<T>(
   const retry = useCallback(() => reload({ silent: false }), [reload]);
 
   useEffect(() => {
-    if (!immediate) {
-      return;
-    }
-
     let cancelled = false;
 
     async function load() {
@@ -62,7 +50,7 @@ export function useAsyncResult<T>(
     return () => {
       cancelled = true;
     };
-  }, [immediate]);
+  }, []);
 
   return { state, reload, retry };
 }

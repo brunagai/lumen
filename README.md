@@ -12,7 +12,7 @@ npm run dev
 
 Abra [http://localhost:3000](http://localhost:3000).
 
-Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`.
+Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`.
 
 ## Fluxo de demonstração (pitch)
 

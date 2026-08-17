@@ -13,5 +13,4 @@ export const CAMPAIGN: Campaign = {
   institutionId: INSTITUTION.id,
   institutionName: INSTITUTION.name,
   goal: { amountCents: 5_000_000, currency: "BRL" },
-  raised: { amountCents: 1_845_000, currency: "BRL" },
 };
