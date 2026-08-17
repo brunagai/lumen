@@ -41,3 +41,10 @@ export function formatBrlFromCents(amountCents: number): string {
     currency: "BRL",
   }).format(amountCents / 100);
 }
+
+export function formatUsdc(amount: number): string {
+  return `${new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)} USDC`;
+}

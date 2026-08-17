@@ -30,6 +30,6 @@ export type AuthPort = {
 
 export function canAccessInstitutionPortal(
   session: Session | null,
-): session is Session {
+): session is Session & { role: "institution" } {
   return session?.role === "institution";
 }

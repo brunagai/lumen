@@ -40,6 +40,40 @@ export type TransparencySnapshot = {
   movements: MovementRecord[];
 };
 
+export type TransparencyScore = {
+  value: number;
+  max: 100;
+  pendingCount: number;
+  penaltyPerPending: number;
+};
+
+export type InstitutionDashboardSnapshot = {
+  cluster: SolanaCluster;
+  balance: OnChainBalance;
+  score: TransparencyScore;
+  pendingOutflows: MovementRecord[];
+  snapshot: TransparencySnapshot;
+};
+
+export type PjWithdrawalInput = {
+  campaignId: CampaignId;
+  amountCents: number;
+};
+
+export type PaySupplierInput = {
+  campaignId: CampaignId;
+  amountCents: number;
+  supplierName: string;
+  description: string;
+  invoiceNumber: string;
+};
+
+export type AttachInvoiceInput = {
+  movementId: string;
+  invoiceNumber: string;
+  issuer: string;
+};
+
 export type SolanaPort = {
   getCluster(): SolanaCluster;
   getOnChainBalance(
@@ -51,5 +85,13 @@ export type SolanaPort = {
   getTransparencySnapshot(
     campaignId: CampaignId,
   ): Promise<Result<TransparencySnapshot>>;
+  getInstitutionDashboard(
+    institutionId: InstitutionId,
+  ): Promise<Result<InstitutionDashboardSnapshot>>;
+  requestPjWithdrawal(
+    input: PjWithdrawalInput,
+  ): Promise<Result<MovementRecord>>;
+  paySupplier(input: PaySupplierInput): Promise<Result<MovementRecord>>;
+  attachInvoice(input: AttachInvoiceInput): Promise<Result<MovementRecord>>;
   getExplorerTxUrl(signature: string): string;
 };

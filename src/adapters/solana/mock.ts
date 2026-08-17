@@ -1,13 +1,22 @@
-import { z } from "zod";
-
-import type {
-  MovementRecord,
-  SolanaPort,
-  TransparencySnapshot,
-} from "@/adapters/solana/types";
+import {
+  appendDonation,
+  appendOutflow,
+  buildReceiptUrl,
+  buildTransparencySnapshot,
+  computeTransparencyScore,
+  createMockSignature,
+  findMovement,
+  getExplorerTxUrl,
+  saveInvoicePatch,
+  toOnChainBalance,
+} from "@/adapters/solana/ledger";
+import type { SolanaPort } from "@/adapters/solana/types";
 import { CAMPAIGN } from "@/config/campaign";
-import { SEED_MOVEMENTS } from "@/data/mocks/movements";
-import type { Donation, Movement } from "@/domain/types";
+import {
+  APPROVED_SUPPLIERS,
+  PJ_ACCOUNT_LABEL,
+} from "@/config/institution";
+import type { Movement } from "@/domain/types";
 import { delay } from "@/lib/delay";
 import { getPublicEnv, shouldForceMockFailure } from "@/lib/env";
 import { AppError, toAppError } from "@/lib/errors";
@@ -16,21 +25,6 @@ import { err, ok, type Result } from "@/lib/result";
 
 const MOCK_LATENCY_MS = 450;
 const DONATION_LATENCY_MS = 900;
-const MOCK_USDC_RATE = 5.6;
-const DONATIONS_STORAGE_KEY = "lumen.solana.donations";
-const BASE58_ALPHABET =
-  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-
-const storedDonationSchema = z.object({
-  id: z.string().min(1),
-  campaignId: z.string().min(1),
-  amount: z.object({
-    amountCents: z.number().int().positive(),
-    currency: z.literal("BRL"),
-  }),
-  txSignature: z.string().min(1),
-  confirmedAt: z.string().min(1),
-});
 
 async function withSimulatedNetwork<T>(
   operation: () => T,
@@ -51,110 +45,12 @@ async function withSimulatedNetwork<T>(
   }
 }
 
-function createMockSignature(): string {
-  const bytes = new Uint8Array(64);
-  crypto.getRandomValues(bytes);
-  return Array.from(
-    bytes,
-    (byte) => BASE58_ALPHABET[byte % BASE58_ALPHABET.length],
-  ).join("");
+function sanitizeText(value: string, maxLength: number): string {
+  return value.trim().replace(/\s+/g, " ").slice(0, maxLength);
 }
 
-function readStoredDonations(): Donation[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const raw = window.localStorage.getItem(DONATIONS_STORAGE_KEY);
-
-  if (!raw) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(raw);
-
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((item) => {
-      const result = storedDonationSchema.safeParse(item);
-      return result.success ? [result.data] : [];
-    });
-  } catch {
-    window.localStorage.removeItem(DONATIONS_STORAGE_KEY);
-    return [];
-  }
-}
-
-function appendDonation(donation: Donation): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const donations = [donation, ...readStoredDonations()];
-  window.localStorage.setItem(DONATIONS_STORAGE_KEY, JSON.stringify(donations));
-}
-
-function getExplorerTxUrl(signature: string): string {
-  const env = getPublicEnv();
-  const url = new URL(`/tx/${signature}`, env.NEXT_PUBLIC_EXPLORER_BASE_URL);
-  url.searchParams.set("cluster", env.NEXT_PUBLIC_SOLANA_CLUSTER);
-  return url.toString();
-}
-
-function donationToMovement(donation: Donation): Movement {
-  return {
-    id: donation.id,
-    campaignId: donation.campaignId,
-    kind: "inflow",
-    status: "on_chain_inflow",
-    amount: donation.amount,
-    occurredAt: donation.confirmedAt,
-    description: "Doação confirmada na Solana",
-    txSignature: donation.txSignature,
-  };
-}
-
-function toMovementRecord(movement: Movement): MovementRecord {
-  return {
-    ...movement,
-    explorerUrl: movement.txSignature
-      ? getExplorerTxUrl(movement.txSignature)
-      : undefined,
-  };
-}
-
-function buildTransparencySnapshot(campaignId: string): TransparencySnapshot {
-  const liveInflows = readStoredDonations()
-    .filter((donation) => donation.campaignId === campaignId)
-    .map(donationToMovement);
-
-  const movements = [...liveInflows, ...SEED_MOVEMENTS]
-    .filter((movement) => movement.campaignId === campaignId)
-    .sort(
-      (left, right) =>
-        new Date(right.occurredAt).getTime() -
-        new Date(left.occurredAt).getTime(),
-    );
-
-  const raisedCents = movements
-    .filter((movement) => movement.kind === "inflow")
-    .reduce((total, movement) => total + movement.amount.amountCents, 0);
-
-  const usedCents = movements
-    .filter((movement) => movement.kind === "outflow")
-    .reduce((total, movement) => total + movement.amount.amountCents, 0);
-
-  return {
-    metrics: {
-      raisedCents,
-      usedCents,
-      availableCents: Math.max(raisedCents - usedCents, 0),
-    },
-    movements: movements.map(toMovementRecord),
-  };
+function isApprovedSupplier(name: string): boolean {
+  return (APPROVED_SUPPLIERS as readonly string[]).includes(name);
 }
 
 export const mockSolanaAdapter: SolanaPort = {
@@ -165,21 +61,12 @@ export const mockSolanaAdapter: SolanaPort = {
   async getOnChainBalance(institutionId) {
     return withSimulatedNetwork(() => {
       if (institutionId !== CAMPAIGN.institutionId) {
-        return {
-          availableBrlCents: 0,
-          availableUsdc: 0,
-        };
+        return toOnChainBalance(0);
       }
 
-      const availableBrlCents = buildTransparencySnapshot(CAMPAIGN.id).metrics
-        .availableCents;
-
-      return {
-        availableBrlCents,
-        availableUsdc: Number(
-          (availableBrlCents / 100 / MOCK_USDC_RATE).toFixed(2),
-        ),
-      };
+      return toOnChainBalance(
+        buildTransparencySnapshot(CAMPAIGN.id).metrics.availableCents,
+      );
     });
   },
 
@@ -210,10 +97,10 @@ export const mockSolanaAdapter: SolanaPort = {
     }
 
     const result = await withSimulatedNetwork(() => {
-      const donation: Donation = {
+      const donation = {
         id: crypto.randomUUID(),
         campaignId: input.campaignId,
-        amount: { amountCents: input.amountCents, currency: "BRL" },
+        amount: { amountCents: input.amountCents, currency: "BRL" as const },
         txSignature: createMockSignature(),
         confirmedAt: new Date().toISOString(),
       };
@@ -241,6 +128,215 @@ export const mockSolanaAdapter: SolanaPort = {
 
   async getTransparencySnapshot(campaignId) {
     return withSimulatedNetwork(() => buildTransparencySnapshot(campaignId));
+  },
+
+  async getInstitutionDashboard(institutionId) {
+    if (institutionId !== CAMPAIGN.institutionId) {
+      return err(
+        new AppError(
+          "AUTH_FORBIDDEN",
+          "Instituição não autorizada a consultar este saldo.",
+        ),
+      );
+    }
+
+    return withSimulatedNetwork(() => {
+      const snapshot = buildTransparencySnapshot(CAMPAIGN.id);
+      const pendingOutflows = snapshot.movements.filter(
+        (movement) => movement.status === "pending",
+      );
+
+      return {
+        cluster: getPublicEnv().NEXT_PUBLIC_SOLANA_CLUSTER,
+        balance: toOnChainBalance(snapshot.metrics.availableCents),
+        score: computeTransparencyScore(snapshot.movements),
+        pendingOutflows,
+        snapshot,
+      };
+    });
+  },
+
+  async requestPjWithdrawal(input) {
+    if (input.campaignId !== CAMPAIGN.id || !Number.isInteger(input.amountCents)) {
+      return err(
+        new AppError("INVALID_AMOUNT", "Informe um valor de saque válido."),
+      );
+    }
+
+    const snapshot = buildTransparencySnapshot(input.campaignId);
+
+    if (input.amountCents > snapshot.metrics.availableCents) {
+      return err(
+        new AppError(
+          "INSUFFICIENT_FUNDS",
+          "Saldo on-chain insuficiente para este saque.",
+        ),
+      );
+    }
+
+    if (input.amountCents <= 0) {
+      return err(
+        new AppError("INVALID_AMOUNT", "O valor do saque deve ser maior que zero."),
+      );
+    }
+
+    return withSimulatedNetwork(() => {
+      const occurredAt = new Date().toISOString();
+      const movement: Movement = {
+        id: crypto.randomUUID(),
+        campaignId: input.campaignId,
+        kind: "outflow",
+        status: "pending",
+        amount: { amountCents: input.amountCents, currency: "BRL" },
+        occurredAt,
+        description: "Saque para conta PJ — nota fiscal pendente",
+        supplierName: PJ_ACCOUNT_LABEL,
+        txSignature: createMockSignature(),
+      };
+
+      appendOutflow(movement);
+
+      return {
+        ...movement,
+        explorerUrl: movement.txSignature
+          ? getExplorerTxUrl(movement.txSignature)
+          : undefined,
+      };
+    });
+  },
+
+  async paySupplier(input) {
+    const supplierName = sanitizeText(input.supplierName, 80);
+    const description = sanitizeText(input.description, 140);
+    const invoiceNumber = sanitizeText(input.invoiceNumber, 40);
+
+    if (!isApprovedSupplier(supplierName)) {
+      return err(
+        new AppError(
+          "INVALID_INPUT",
+          "Selecione um fornecedor homologado.",
+        ),
+      );
+    }
+
+    if (description.length < 8 || invoiceNumber.length < 3) {
+      return err(
+        new AppError(
+          "INVALID_INPUT",
+          "Informe a descrição da despesa e o número da nota fiscal.",
+        ),
+      );
+    }
+
+    if (
+      input.campaignId !== CAMPAIGN.id ||
+      !Number.isInteger(input.amountCents) ||
+      input.amountCents <= 0
+    ) {
+      return err(
+        new AppError("INVALID_AMOUNT", "Informe um valor de pagamento válido."),
+      );
+    }
+
+    const snapshot = buildTransparencySnapshot(input.campaignId);
+
+    if (input.amountCents > snapshot.metrics.availableCents) {
+      return err(
+        new AppError(
+          "INSUFFICIENT_FUNDS",
+          "Saldo on-chain insuficiente para pagar este fornecedor.",
+        ),
+      );
+    }
+
+    return withSimulatedNetwork(() => {
+      const occurredAt = new Date().toISOString();
+      const invoice = {
+        number: invoiceNumber,
+        issuer: supplierName,
+        issuedAt: occurredAt,
+        documentUrl: buildReceiptUrl({
+          number: invoiceNumber,
+          issuer: supplierName,
+          amountCents: input.amountCents,
+          issuedAt: occurredAt,
+        }),
+      };
+
+      const movement: Movement = {
+        id: crypto.randomUUID(),
+        campaignId: input.campaignId,
+        kind: "outflow",
+        status: "chain_closed",
+        amount: { amountCents: input.amountCents, currency: "BRL" },
+        occurredAt,
+        description,
+        supplierName,
+        txSignature: createMockSignature(),
+        invoice,
+      };
+
+      appendOutflow(movement);
+
+      return {
+        ...movement,
+        explorerUrl: getExplorerTxUrl(movement.txSignature ?? ""),
+      };
+    });
+  },
+
+  async attachInvoice(input) {
+    const invoiceNumber = sanitizeText(input.invoiceNumber, 40);
+    const issuer = sanitizeText(input.issuer, 80);
+
+    if (invoiceNumber.length < 3 || issuer.length < 3) {
+      return err(
+        new AppError(
+          "INVALID_INPUT",
+          "Informe o número da nota fiscal e o emitente.",
+        ),
+      );
+    }
+
+    const current = findMovement(CAMPAIGN.id, input.movementId);
+
+    if (!current || current.kind !== "outflow") {
+      return err(
+        new AppError("NOT_FOUND", "Movimentação pendente não encontrada."),
+      );
+    }
+
+    if (current.status !== "pending") {
+      return err(
+        new AppError(
+          "INVALID_INPUT",
+          "Esta saída já possui comprovante vinculado.",
+        ),
+      );
+    }
+
+    return withSimulatedNetwork(() => {
+      const issuedAt = new Date().toISOString();
+      const invoice = {
+        number: invoiceNumber,
+        issuer,
+        issuedAt,
+        documentUrl: buildReceiptUrl({
+          number: invoiceNumber,
+          issuer,
+          amountCents: current.amount.amountCents,
+          issuedAt,
+        }),
+      };
+
+      saveInvoicePatch(current.id, invoice);
+
+      return {
+        ...current,
+        status: "chain_closed" as const,
+        invoice,
+      };
+    });
   },
 
   getExplorerTxUrl,

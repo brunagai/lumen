@@ -5,6 +5,9 @@ export const ERROR_CODES = [
   "AUTH_FORBIDDEN",
   "NETWORK",
   "TX_FAILED",
+  "INSUFFICIENT_FUNDS",
+  "NOT_FOUND",
+  "INVALID_INPUT",
   "MOCK_FAILURE",
   "UNKNOWN",
 ] as const;
