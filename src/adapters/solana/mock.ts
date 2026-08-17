@@ -5,9 +5,9 @@ import {
 } from "@/adapters/auth";
 import {
   appendDonation,
-  appendOutflow,
   buildReceiptUrl,
   buildTransparencySnapshot,
+  commitAffordableOutflow,
   computeTransparencyScore,
   createMockSignature,
   findMovement,
@@ -15,17 +15,16 @@ import {
   saveInvoicePatch,
   toOnChainBalance,
 } from "@/adapters/solana/ledger";
-import type { MovementRecord, SolanaPort } from "@/adapters/solana/types";
+import type { SolanaPort } from "@/adapters/solana/types";
 import { CAMPAIGN } from "@/config/campaign";
 import {
   APPROVED_SUPPLIERS,
   PJ_ACCOUNT_LABEL,
 } from "@/config/institution";
-import type { Movement } from "@/domain/types";
 import { getPublicEnv, shouldForceMockFailure } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { brlToCents, isAllowedQuickDonationBrl } from "@/lib/money";
-import { err, ok, type Result } from "@/lib/result";
+import { err, type Result } from "@/lib/result";
 import {
   DONATION_NETWORK_LATENCY_MS,
   SOLANA_NETWORK_LATENCY_MS,
@@ -63,31 +62,6 @@ async function withExclusiveLedgerAccess<T>(
   }
 
   return operation();
-}
-
-function commitAffordableOutflow(
-  campaignId: string,
-  amountCents: number,
-  insufficientFundsMessage: string,
-  createMovement: () => Movement,
-): Result<MovementRecord> {
-  const snapshot = buildTransparencySnapshot(campaignId);
-
-  if (amountCents > snapshot.metrics.availableCents) {
-    return err(
-      new AppError("INSUFFICIENT_FUNDS", insufficientFundsMessage),
-    );
-  }
-
-  const movement = createMovement();
-  appendOutflow(movement);
-
-  return ok({
-    ...movement,
-    explorerUrl: movement.txSignature
-      ? getExplorerTxUrl(movement.txSignature)
-      : undefined,
-  });
 }
 
 async function rejectWhenMockFailureForced(): Promise<Result<never> | null> {

@@ -13,6 +13,8 @@ import {
 import { SEED_MOVEMENTS } from "@/data/mocks/movements";
 import type { Donation, InvoiceEvidence, Movement } from "@/domain/types";
 import { getPublicEnv } from "@/lib/env";
+import { AppError } from "@/lib/errors";
+import { err, ok, type Result } from "@/lib/result";
 import { evidenceUrlSchema } from "@/lib/safe-url";
 
 const DONATIONS_STORAGE_KEY = "lumen.solana.donations";
@@ -147,6 +149,31 @@ function readStoredOutflows(): Movement[] {
 
 export function appendOutflow(movement: Movement): void {
   writeJson(OUTFLOWS_STORAGE_KEY, [movement, ...readStoredOutflows()]);
+}
+
+export function commitAffordableOutflow(
+  campaignId: string,
+  amountCents: number,
+  insufficientFundsMessage: string,
+  createMovement: () => Movement,
+): Result<MovementRecord> {
+  const snapshot = buildTransparencySnapshot(campaignId);
+
+  if (amountCents > snapshot.metrics.availableCents) {
+    return err(
+      new AppError("INSUFFICIENT_FUNDS", insufficientFundsMessage),
+    );
+  }
+
+  const movement = createMovement();
+  appendOutflow(movement);
+
+  return ok({
+    ...movement,
+    explorerUrl: movement.txSignature
+      ? getExplorerTxUrl(movement.txSignature)
+      : undefined,
+  });
 }
 
 function readInvoicePatches(): Record<string, InvoiceEvidence> {
