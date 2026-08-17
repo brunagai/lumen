@@ -13,6 +13,7 @@ import {
 import { SEED_MOVEMENTS } from "@/data/mocks/movements";
 import type { Donation, InvoiceEvidence, Movement } from "@/domain/types";
 import { getPublicEnv } from "@/lib/env";
+import { evidenceUrlSchema } from "@/lib/safe-url";
 
 const DONATIONS_STORAGE_KEY = "lumen.solana.donations";
 const OUTFLOWS_STORAGE_KEY = "lumen.solana.outflows";
@@ -29,7 +30,7 @@ const invoiceSchema = z.object({
   number: z.string().min(1),
   issuer: z.string().min(1),
   issuedAt: z.string().min(1),
-  documentUrl: z.string().min(1),
+  documentUrl: evidenceUrlSchema,
 });
 
 const storedDonationSchema = z.object({

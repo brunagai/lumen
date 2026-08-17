@@ -3,6 +3,7 @@ import { InvoiceEvidenceCard } from "@/components/transparency/InvoiceEvidenceCa
 import { MovementStatusBadge } from "@/components/transparency/MovementStatusBadge";
 import { formatDateTimePtBr, shortenSignature } from "@/lib/format";
 import { formatBrlFromCents } from "@/lib/money";
+import { parseSafeHttpUrl } from "@/lib/safe-url";
 
 type MovementItemProps = {
   movement: MovementRecord;
@@ -12,6 +13,9 @@ export function MovementItem({ movement }: MovementItemProps) {
   const isInflow = movement.kind === "inflow";
   const amountPrefix = isInflow ? "+" : "−";
   const amountClass = isInflow ? "text-inflow" : "text-outflow";
+  const explorerHref = movement.explorerUrl
+    ? parseSafeHttpUrl(movement.explorerUrl)
+    : null;
 
   return (
     <article className="relative pl-7 sm:pl-8">
@@ -53,9 +57,9 @@ export function MovementItem({ movement }: MovementItemProps) {
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <MovementStatusBadge status={movement.status} />
-          {movement.txSignature && movement.explorerUrl ? (
+          {movement.txSignature && explorerHref?.ok ? (
             <a
-              href={movement.explorerUrl}
+              href={explorerHref.value}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium break-all text-teal underline-offset-2 hover:underline"

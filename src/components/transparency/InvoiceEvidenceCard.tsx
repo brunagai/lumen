@@ -1,5 +1,6 @@
 import type { InvoiceEvidence } from "@/domain/types";
 import { formatDatePtBr } from "@/lib/format";
+import { parseSafeEvidenceUrl } from "@/lib/safe-url";
 
 type InvoiceEvidenceCardProps = {
   invoice?: InvoiceEvidence;
@@ -20,6 +21,8 @@ export function InvoiceEvidenceCard({ invoice }: InvoiceEvidenceCardProps) {
     );
   }
 
+  const documentHref = parseSafeEvidenceUrl(invoice.documentUrl);
+
   return (
     <div className="rounded-xl border border-closed/20 bg-closed-bg/70 p-4">
       <p className="text-sm font-semibold text-closed">Nota Fiscal Vinculada</p>
@@ -39,14 +42,18 @@ export function InvoiceEvidenceCard({ invoice }: InvoiceEvidenceCardProps) {
           <dd className="font-medium break-words text-foreground">{invoice.issuer}</dd>
         </div>
       </dl>
-      <a
-        href={invoice.documentUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-3 inline-flex text-sm font-medium text-closed underline-offset-2 hover:underline"
-      >
-        Abrir comprovante verificável
-      </a>
+      {documentHref.ok ? (
+        <a
+          href={documentHref.value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex text-sm font-medium text-closed underline-offset-2 hover:underline"
+        >
+          Abrir comprovante verificável
+        </a>
+      ) : (
+        <p className="mt-3 text-sm text-muted">Comprovante indisponível.</p>
+      )}
     </div>
   );
 }
