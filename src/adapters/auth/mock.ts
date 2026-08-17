@@ -5,12 +5,14 @@ import {
   type SignInInput,
 } from "@/adapters/auth/types";
 import { INSTITUTION } from "@/config/campaign";
-import { delay } from "@/lib/delay";
 import { AppError, toAppError } from "@/lib/errors";
-import { err, ok, type Result } from "@/lib/result";
+import { err, ok } from "@/lib/result";
+import {
+  AUTH_NETWORK_LATENCY_MS,
+  withSimulatedNetwork,
+} from "@/lib/simulated-network";
 
 const STORAGE_KEY = "lumen.auth.session";
-const MOCK_LATENCY_MS = 400;
 
 function readStoredSession(): Session | null {
   if (typeof window === "undefined") {
@@ -43,16 +45,6 @@ function writeStoredSession(session: Session | null): void {
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-}
-
-async function withSimulatedNetwork<T>(operation: () => T): Promise<Result<T>> {
-  try {
-    await delay(MOCK_LATENCY_MS);
-
-    return ok(operation());
-  } catch (cause) {
-    return err(toAppError(cause));
-  }
 }
 
 function buildSession(input: SignInInput): Session {
@@ -131,16 +123,22 @@ export const mockAuthAdapter: AuthPort = {
   },
 
   async signIn(input) {
-    return withSimulatedNetwork(() => {
-      const session = buildSession(input);
-      writeStoredSession(session);
-      return session;
-    });
+    return withSimulatedNetwork(
+      () => {
+        const session = buildSession(input);
+        writeStoredSession(session);
+        return session;
+      },
+      { latencyMs: AUTH_NETWORK_LATENCY_MS },
+    );
   },
 
   async signOut() {
-    return withSimulatedNetwork(() => {
-      writeStoredSession(null);
-    });
+    return withSimulatedNetwork(
+      () => {
+        writeStoredSession(null);
+      },
+      { latencyMs: AUTH_NETWORK_LATENCY_MS },
+    );
   },
 };

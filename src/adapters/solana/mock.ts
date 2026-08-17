@@ -22,33 +22,27 @@ import {
   PJ_ACCOUNT_LABEL,
 } from "@/config/institution";
 import type { Movement } from "@/domain/types";
-import { delay } from "@/lib/delay";
 import { getPublicEnv, shouldForceMockFailure } from "@/lib/env";
-import { AppError, toAppError } from "@/lib/errors";
+import { AppError } from "@/lib/errors";
 import { brlToCents, isAllowedQuickDonationBrl } from "@/lib/money";
 import { err, ok, type Result } from "@/lib/result";
+import {
+  DONATION_NETWORK_LATENCY_MS,
+  SOLANA_NETWORK_LATENCY_MS,
+  rejectIfForcedFailure,
+  withSimulatedNetwork,
+  type SimulatedNetworkOptions,
+} from "@/lib/simulated-network";
 
-const MOCK_LATENCY_MS = 450;
-const DONATION_LATENCY_MS = 900;
-
-async function withSimulatedNetwork<T>(
+function withSolanaNetwork<T>(
   operation: () => T,
-  latencyMs = MOCK_LATENCY_MS,
-  options?: { ignoreMockFailure?: boolean },
-): Promise<Result<T>> {
-  try {
-    await delay(latencyMs);
-
-    if (!options?.ignoreMockFailure && shouldForceMockFailure()) {
-      return err(
-        new AppError("MOCK_FAILURE", "Falha simulada na consulta à Solana."),
-      );
-    }
-
-    return ok(operation());
-  } catch (cause) {
-    return err(toAppError(cause));
-  }
+  options: Omit<SimulatedNetworkOptions, "forceFailure"> = {},
+) {
+  return withSimulatedNetwork(operation, {
+    latencyMs: SOLANA_NETWORK_LATENCY_MS,
+    forceFailure: shouldForceMockFailure,
+    ...options,
+  });
 }
 
 function sanitizeText(value: string, maxLength: number): string {
@@ -97,15 +91,9 @@ function commitAffordableOutflow(
 }
 
 async function rejectWhenMockFailureForced(): Promise<Result<never> | null> {
-  if (!shouldForceMockFailure()) {
-    return null;
-  }
-
-  await delay(MOCK_LATENCY_MS);
-
-  return err(
-    new AppError("MOCK_FAILURE", "Falha simulada na consulta à Solana."),
-  );
+  return rejectIfForcedFailure(shouldForceMockFailure(), {
+    latencyMs: SOLANA_NETWORK_LATENCY_MS,
+  });
 }
 
 async function authorizeLedgerMutation(
@@ -131,7 +119,7 @@ export const mockSolanaAdapter: SolanaPort = {
   },
 
   async getOnChainBalance(institutionId) {
-    return withSimulatedNetwork(() => {
+    return withSolanaNetwork(() => {
       if (institutionId !== CAMPAIGN.institutionId) {
         return toOnChainBalance(0);
       }
@@ -167,7 +155,7 @@ export const mockSolanaAdapter: SolanaPort = {
       );
     }
 
-    const result = await withSimulatedNetwork(() => {
+    const result = await withSolanaNetwork(() => {
       const donation = {
         id: crypto.randomUUID(),
         campaignId: input.campaignId,
@@ -182,7 +170,7 @@ export const mockSolanaAdapter: SolanaPort = {
         donation,
         explorerUrl: getExplorerTxUrl(donation.txSignature),
       };
-    }, DONATION_LATENCY_MS);
+    }, { latencyMs: DONATION_NETWORK_LATENCY_MS });
 
     if (!result.ok) {
       return err(
@@ -198,7 +186,7 @@ export const mockSolanaAdapter: SolanaPort = {
   },
 
   async getTransparencySnapshot(campaignId) {
-    return withSimulatedNetwork(() => buildTransparencySnapshot(campaignId));
+    return withSolanaNetwork(() => buildTransparencySnapshot(campaignId));
   },
 
   async getInstitutionDashboard(institutionId) {
@@ -211,7 +199,7 @@ export const mockSolanaAdapter: SolanaPort = {
       );
     }
 
-    return withSimulatedNetwork(() => {
+    return withSolanaNetwork(() => {
       const snapshot = buildTransparencySnapshot(CAMPAIGN.id);
       const pendingOutflows = snapshot.movements.filter(
         (movement) => movement.status === "pending",
@@ -281,11 +269,9 @@ export const mockSolanaAdapter: SolanaPort = {
       return committed;
     }
 
-    return withSimulatedNetwork(
-      () => committed.value,
-      MOCK_LATENCY_MS,
-      { ignoreMockFailure: true },
-    );
+    return withSolanaNetwork(() => committed.value, {
+      ignoreForcedFailure: true,
+    });
   },
 
   async paySupplier(input) {
@@ -374,11 +360,9 @@ export const mockSolanaAdapter: SolanaPort = {
       return committed;
     }
 
-    return withSimulatedNetwork(
-      () => committed.value,
-      MOCK_LATENCY_MS,
-      { ignoreMockFailure: true },
-    );
+    return withSolanaNetwork(() => committed.value, {
+      ignoreForcedFailure: true,
+    });
   },
 
   async attachInvoice(input) {
@@ -419,7 +403,7 @@ export const mockSolanaAdapter: SolanaPort = {
       );
     }
 
-    return withSimulatedNetwork(() => {
+    return withSolanaNetwork(() => {
       const issuedAt = new Date().toISOString();
       const invoice = {
         number: invoiceNumber,

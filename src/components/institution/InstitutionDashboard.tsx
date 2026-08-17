@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
-import { canAccessInstitutionPortal } from "@/adapters/auth";
+import { canAccessInstitutionPortal, type Session } from "@/adapters/auth";
 import {
   solanaAdapter,
   type InstitutionDashboardSnapshot,
@@ -16,16 +16,15 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/Button";
 import { ErrorPanel, LoadingPanel } from "@/components/ui/StatusPanel";
 import { CAMPAIGN, INSTITUTION } from "@/config/campaign";
-import type { AsyncState } from "@/lib/async-state";
-import { toAppError } from "@/lib/errors";
+import { useAsyncResult } from "@/hooks/use-async-result";
+import { runResult } from "@/lib/async-state";
+import type { Result } from "@/lib/result";
 
 export function InstitutionDashboard() {
   const { session, signOut } = useAuth();
-  const [state, setState] = useState<
-    AsyncState<InstitutionDashboardSnapshot>
-  >({
-    status: "loading",
-  });
+  const { state, reload, retry } = useAsyncResult<InstitutionDashboardSnapshot>(
+    () => solanaAdapter.getInstitutionDashboard(INSTITUTION.id),
+  );
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [paySubmitting, setPaySubmitting] = useState(false);
@@ -36,55 +35,30 @@ export function InstitutionDashboard() {
   const [payError, setPayError] = useState<string | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
 
-  const applySnapshot = useCallback(async () => {
-    try {
-      const result = await solanaAdapter.getInstitutionDashboard(INSTITUTION.id);
+  async function runAuthorizedMutation(
+    setError: (message: string | null) => void,
+    operation: (
+      authorizedSession: Session & { role: "institution" },
+    ) => Promise<Result<unknown>>,
+  ): Promise<boolean> {
+    setError(null);
 
-      if (result.ok) {
-        setState({ status: "success", data: result.value });
-        return;
-      }
-
-      setState({ status: "error", error: result.error });
-    } catch (cause) {
-      setState({ status: "error", error: toAppError(cause) });
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const result = await solanaAdapter.getInstitutionDashboard(INSTITUTION.id);
-
-        if (cancelled) {
-          return;
-        }
-
-        if (result.ok) {
-          setState({ status: "success", data: result.value });
-          return;
-        }
-
-        setState({ status: "error", error: result.error });
-      } catch (cause) {
-        if (!cancelled) {
-          setState({ status: "error", error: toAppError(cause) });
-        }
-      }
+    if (!canAccessInstitutionPortal(session)) {
+      setError(
+        "Apenas a instituição autenticada pode executar esta operação.",
+      );
+      return false;
     }
 
-    void load();
+    const result = await runResult(() => operation(session));
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!result.ok) {
+      setError(result.error.message);
+      return false;
+    }
 
-  async function handleRetry() {
-    setState({ status: "loading" });
-    await applySnapshot();
+    await reload({ silent: true });
+    return true;
   }
 
   async function handleSignOut() {
@@ -94,33 +68,16 @@ export function InstitutionDashboard() {
   }
 
   async function handleWithdraw(amountCents: number) {
-    setWithdrawError(null);
     setWithdrawSubmitting(true);
 
     try {
-      if (!canAccessInstitutionPortal(session)) {
-        setWithdrawError(
-          "Apenas a instituição autenticada pode executar esta operação.",
-        );
-        return false;
-      }
-
-      const result = await solanaAdapter.requestPjWithdrawal({
-        campaignId: CAMPAIGN.id,
-        amountCents,
-        session,
-      });
-
-      if (!result.ok) {
-        setWithdrawError(result.error.message);
-        return false;
-      }
-
-      await applySnapshot();
-      return true;
-    } catch (cause) {
-      setWithdrawError(toAppError(cause).message);
-      return false;
+      return await runAuthorizedMutation(setWithdrawError, (authorizedSession) =>
+        solanaAdapter.requestPjWithdrawal({
+          campaignId: CAMPAIGN.id,
+          amountCents,
+          session: authorizedSession,
+        }),
+      );
     } finally {
       setWithdrawSubmitting(false);
     }
@@ -132,33 +89,16 @@ export function InstitutionDashboard() {
     invoiceNumber: string;
     amountCents: number;
   }) {
-    setPayError(null);
     setPaySubmitting(true);
 
     try {
-      if (!canAccessInstitutionPortal(session)) {
-        setPayError(
-          "Apenas a instituição autenticada pode executar esta operação.",
-        );
-        return false;
-      }
-
-      const result = await solanaAdapter.paySupplier({
-        campaignId: CAMPAIGN.id,
-        ...input,
-        session,
-      });
-
-      if (!result.ok) {
-        setPayError(result.error.message);
-        return false;
-      }
-
-      await applySnapshot();
-      return true;
-    } catch (cause) {
-      setPayError(toAppError(cause).message);
-      return false;
+      return await runAuthorizedMutation(setPayError, (authorizedSession) =>
+        solanaAdapter.paySupplier({
+          campaignId: CAMPAIGN.id,
+          ...input,
+          session: authorizedSession,
+        }),
+      );
     } finally {
       setPaySubmitting(false);
     }
@@ -169,32 +109,15 @@ export function InstitutionDashboard() {
     invoiceNumber: string;
     issuer: string;
   }) {
-    setAttachError(null);
     setAttachSubmittingId(input.movementId);
 
     try {
-      if (!canAccessInstitutionPortal(session)) {
-        setAttachError(
-          "Apenas a instituição autenticada pode executar esta operação.",
-        );
-        return false;
-      }
-
-      const result = await solanaAdapter.attachInvoice({
-        ...input,
-        session,
-      });
-
-      if (!result.ok) {
-        setAttachError(result.error.message);
-        return false;
-      }
-
-      await applySnapshot();
-      return true;
-    } catch (cause) {
-      setAttachError(toAppError(cause).message);
-      return false;
+      return await runAuthorizedMutation(setAttachError, (authorizedSession) =>
+        solanaAdapter.attachInvoice({
+          ...input,
+          session: authorizedSession,
+        }),
+      );
     } finally {
       setAttachSubmittingId(null);
     }
@@ -226,7 +149,7 @@ export function InstitutionDashboard() {
       {state.status === "error" ? (
         <ErrorPanel
           message={state.error.message}
-          onRetry={() => void handleRetry()}
+          onRetry={() => void retry()}
         />
       ) : null}
 

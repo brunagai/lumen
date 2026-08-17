@@ -1,7 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
 import {
   solanaAdapter,
   type TransparencySnapshot,
@@ -10,64 +8,12 @@ import { MacroMetrics } from "@/components/transparency/MacroMetrics";
 import { MovementTimeline } from "@/components/transparency/MovementTimeline";
 import { ErrorPanel, LoadingPanel } from "@/components/ui/StatusPanel";
 import { CAMPAIGN } from "@/config/campaign";
-import type { AsyncState } from "@/lib/async-state";
-import { toAppError } from "@/lib/errors";
+import { useAsyncResult } from "@/hooks/use-async-result";
 
 export function TransparencyTrail() {
-  const [state, setState] = useState<AsyncState<TransparencySnapshot>>({
-    status: "loading",
-  });
-
-  const applySnapshot = useCallback(async () => {
-    try {
-      const result = await solanaAdapter.getTransparencySnapshot(CAMPAIGN.id);
-
-      if (result.ok) {
-        setState({ status: "success", data: result.value });
-        return;
-      }
-
-      setState({ status: "error", error: result.error });
-    } catch (cause) {
-      setState({ status: "error", error: toAppError(cause) });
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const result = await solanaAdapter.getTransparencySnapshot(CAMPAIGN.id);
-
-        if (cancelled) {
-          return;
-        }
-
-        if (result.ok) {
-          setState({ status: "success", data: result.value });
-          return;
-        }
-
-        setState({ status: "error", error: result.error });
-      } catch (cause) {
-        if (!cancelled) {
-          setState({ status: "error", error: toAppError(cause) });
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function handleRetry() {
-    setState({ status: "loading" });
-    await applySnapshot();
-  }
+  const { state, retry } = useAsyncResult<TransparencySnapshot>(() =>
+    solanaAdapter.getTransparencySnapshot(CAMPAIGN.id),
+  );
 
   return (
     <div className="flex flex-col gap-8">
@@ -99,7 +45,7 @@ export function TransparencyTrail() {
       {state.status === "error" ? (
         <ErrorPanel
           message={state.error.message}
-          onRetry={() => void handleRetry()}
+          onRetry={() => void retry()}
         />
       ) : null}
 

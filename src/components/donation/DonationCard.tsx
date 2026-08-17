@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { Session } from "@/adapters/auth";
 import {
@@ -16,8 +16,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/Button";
 import { ErrorPanel, LoadingPanel } from "@/components/ui/StatusPanel";
 import { CAMPAIGN } from "@/config/campaign";
-import type { AsyncState } from "@/lib/async-state";
-import { toAppError } from "@/lib/errors";
+import { useAsyncAction, useAsyncResult } from "@/hooks/use-async-result";
 import {
   brlToCents,
   formatBrlFromCents,
@@ -30,68 +29,21 @@ export function DonationCard() {
     null,
   );
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [donateState, setDonateState] = useState<AsyncState<DonationReceipt>>({
-    status: "idle",
-  });
-  const [snapshotState, setSnapshotState] = useState<
-    AsyncState<TransparencySnapshot>
-  >({
-    status: "loading",
-  });
+  const {
+    state: snapshotState,
+    reload: reloadSnapshot,
+    retry: retrySnapshot,
+  } = useAsyncResult<TransparencySnapshot>(() =>
+    solanaAdapter.getTransparencySnapshot(CAMPAIGN.id),
+  );
+  const { state: donateState, run: runDonate } =
+    useAsyncAction<DonationReceipt>();
 
   const isDonating = donateState.status === "loading";
 
-  const applySnapshot = useCallback(async () => {
-    try {
-      const result = await solanaAdapter.getTransparencySnapshot(CAMPAIGN.id);
-
-      if (result.ok) {
-        setSnapshotState({ status: "success", data: result.value });
-        return;
-      }
-
-      setSnapshotState({ status: "error", error: result.error });
-    } catch (cause) {
-      setSnapshotState({ status: "error", error: toAppError(cause) });
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const result = await solanaAdapter.getTransparencySnapshot(CAMPAIGN.id);
-
-        if (cancelled) {
-          return;
-        }
-
-        if (result.ok) {
-          setSnapshotState({ status: "success", data: result.value });
-          return;
-        }
-
-        setSnapshotState({ status: "error", error: result.error });
-      } catch (cause) {
-        if (!cancelled) {
-          setSnapshotState({ status: "error", error: toAppError(cause) });
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const runDonation = useCallback(
     async (donorSession: Session, amount: QuickDonationBrl) => {
-      setDonateState({ status: "loading" });
-
-      try {
+      await runDonate(async () => {
         const result = await solanaAdapter.confirmDonation({
           campaignId: CAMPAIGN.id,
           amountCents: brlToCents(amount),
@@ -99,17 +51,13 @@ export function DonationCard() {
         });
 
         if (result.ok) {
-          await applySnapshot();
-          setDonateState({ status: "success", data: result.value });
-          return;
+          await reloadSnapshot({ silent: true });
         }
 
-        setDonateState({ status: "error", error: result.error });
-      } catch (cause) {
-        setDonateState({ status: "error", error: toAppError(cause) });
-      }
+        return result;
+      });
     },
-    [applySnapshot],
+    [reloadSnapshot, runDonate],
   );
 
   function handleEnterToDonate() {
@@ -143,11 +91,6 @@ export function DonationCard() {
     void runDonation(session, selectedAmount);
   }
 
-  async function handleRetrySnapshot() {
-    setSnapshotState({ status: "loading" });
-    await applySnapshot();
-  }
-
   return (
     <section className="flex flex-col gap-6">
       <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-8">
@@ -170,7 +113,7 @@ export function DonationCard() {
             <ErrorPanel
               message={snapshotState.error.message}
               onRetry={() => {
-                void handleRetrySnapshot();
+                void retrySnapshot();
               }}
             />
           </div>
