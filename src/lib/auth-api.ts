@@ -36,7 +36,7 @@ export function parseAuthApiEnvelope<T>(
   parseValue: (value: unknown) => T,
 ): Result<T> {
   if (!payload || typeof payload !== "object" || !("ok" in payload)) {
-    return err(new AppError("NETWORK", "Resposta de autenticação inválida."));
+    return err(new AppError("NETWORK", "Resposta da API inválida."));
   }
 
   if (payload.ok === true && "value" in payload) {
@@ -44,7 +44,7 @@ export function parseAuthApiEnvelope<T>(
       return ok(parseValue(payload.value));
     } catch (cause) {
       return err(
-        new AppError("NETWORK", "Resposta de autenticação inválida.", cause),
+        new AppError("NETWORK", "Resposta da API inválida.", cause),
       );
     }
   }
@@ -68,7 +68,7 @@ export function parseAuthApiEnvelope<T>(
     );
   }
 
-  return err(new AppError("NETWORK", "Resposta de autenticação inválida."));
+  return err(new AppError("NETWORK", "Resposta da API inválida."));
 }
 
 export function parseSessionValue(value: unknown): Session {

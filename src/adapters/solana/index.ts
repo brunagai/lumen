@@ -1,4 +1,4 @@
-export { mockSolanaAdapter as solanaAdapter } from "@/adapters/solana/mock";
+export { httpSolanaAdapter as solanaAdapter } from "@/adapters/solana/http";
 export type {
   AttachInvoiceInput,
   ConfirmDonationInput,

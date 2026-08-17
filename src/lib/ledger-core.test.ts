@@ -1,21 +1,16 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { CAMPAIGN } from "@/config/campaign";
+import { SCORE_PENALTY_PER_PENDING } from "@/config/institution";
 import {
   appendDonation,
   appendOutflow,
   buildTransparencySnapshot,
   commitAffordableOutflow,
   computeTransparencyScore,
-} from "@/adapters/solana/ledger";
-import { CAMPAIGN } from "@/config/campaign";
-import { SCORE_PENALTY_PER_PENDING } from "@/config/institution";
+} from "@/lib/ledger-core";
+import { emptyLedgerState, type LedgerState } from "@/lib/ledger-state";
 import type { Donation, Movement, MovementStatus } from "@/domain/types";
-
-const LEDGER_STORAGE_KEYS = [
-  "lumen.solana.donations",
-  "lumen.solana.outflows",
-  "lumen.solana.invoice-patches",
-] as const;
 
 const SEED_RAISED_CENTS = 1_845_000;
 const SEED_USED_CENTS = 620_000;
@@ -98,15 +93,15 @@ describe("computeTransparencyScore", () => {
   });
 });
 
-describe("ledger integrity and outflow commits", () => {
+describe("centralized ledger integrity and outflow commits", () => {
+  let state: LedgerState;
+
   beforeEach(() => {
-    for (const key of LEDGER_STORAGE_KEYS) {
-      window.localStorage.removeItem(key);
-    }
+    state = emptyLedgerState();
   });
 
   it("computes seed raised, used and available balances", () => {
-    const snapshot = buildTransparencySnapshot(CAMPAIGN.id);
+    const snapshot = buildTransparencySnapshot(state, CAMPAIGN.id);
 
     expect(snapshot.metrics).toEqual({
       raisedCents: SEED_RAISED_CENTS,
@@ -116,9 +111,9 @@ describe("ledger integrity and outflow commits", () => {
   });
 
   it("increases raised and available when a donation is appended", () => {
-    const before = buildTransparencySnapshot(CAMPAIGN.id);
-    appendDonation(liveDonation(10_000));
-    const after = buildTransparencySnapshot(CAMPAIGN.id);
+    const before = buildTransparencySnapshot(state, CAMPAIGN.id);
+    state = appendDonation(state, liveDonation(10_000));
+    const after = buildTransparencySnapshot(state, CAMPAIGN.id);
 
     expect(after.metrics.raisedCents).toBe(before.metrics.raisedCents + 10_000);
     expect(after.metrics.availableCents).toBe(
@@ -127,9 +122,9 @@ describe("ledger integrity and outflow commits", () => {
   });
 
   it("increases used and decreases available when an outflow is appended", () => {
-    const before = buildTransparencySnapshot(CAMPAIGN.id);
-    appendOutflow(liveOutflow(25_000));
-    const after = buildTransparencySnapshot(CAMPAIGN.id);
+    const before = buildTransparencySnapshot(state, CAMPAIGN.id);
+    state = appendOutflow(state, liveOutflow(25_000));
+    const after = buildTransparencySnapshot(state, CAMPAIGN.id);
 
     expect(after.metrics.usedCents).toBe(before.metrics.usedCents + 25_000);
     expect(after.metrics.availableCents).toBe(
@@ -138,9 +133,10 @@ describe("ledger integrity and outflow commits", () => {
   });
 
   it("commits an outflow atomically when funds are available", () => {
-    const before = buildTransparencySnapshot(CAMPAIGN.id);
+    const before = buildTransparencySnapshot(state, CAMPAIGN.id);
     const amountCents = 40_000;
     const result = commitAffordableOutflow(
+      state,
       CAMPAIGN.id,
       amountCents,
       "Saldo on-chain insuficiente para este saque.",
@@ -152,19 +148,21 @@ describe("ledger integrity and outflow commits", () => {
       return;
     }
 
-    const after = buildTransparencySnapshot(CAMPAIGN.id);
+    state = result.value.state;
+    const after = buildTransparencySnapshot(state, CAMPAIGN.id);
     expect(after.metrics.availableCents).toBe(
       before.metrics.availableCents - amountCents,
     );
-    expect(after.movements.some((item) => item.id === result.value.id)).toBe(
+    expect(after.movements.some((item) => item.id === result.value.record.id)).toBe(
       true,
     );
   });
 
   it("refuses an outflow that exceeds the current available balance", () => {
-    const before = buildTransparencySnapshot(CAMPAIGN.id);
+    const before = buildTransparencySnapshot(state, CAMPAIGN.id);
     const amountCents = before.metrics.availableCents + 1;
     const result = commitAffordableOutflow(
+      state,
       CAMPAIGN.id,
       amountCents,
       "Saldo on-chain insuficiente para este saque.",
@@ -177,36 +175,44 @@ describe("ledger integrity and outflow commits", () => {
     }
 
     expect(result.error.code).toBe("INSUFFICIENT_FUNDS");
-    expect(buildTransparencySnapshot(CAMPAIGN.id).metrics.availableCents).toBe(
+    expect(buildTransparencySnapshot(state, CAMPAIGN.id).metrics.availableCents).toBe(
       before.metrics.availableCents,
     );
   });
 
   it("does not allow a second commit to spend more than the remaining balance", () => {
-    const available = buildTransparencySnapshot(CAMPAIGN.id).metrics
+    const available = buildTransparencySnapshot(state, CAMPAIGN.id).metrics
       .availableCents;
     const first = commitAffordableOutflow(
+      state,
       CAMPAIGN.id,
       available,
       "Saldo on-chain insuficiente para este saque.",
       () => liveOutflow(available),
     );
+
+    expect(first.ok).toBe(true);
+    if (!first.ok) {
+      return;
+    }
+
     const second = commitAffordableOutflow(
+      first.value.state,
       CAMPAIGN.id,
       1,
       "Saldo on-chain insuficiente para este saque.",
       () => liveOutflow(1),
     );
 
-    expect(first.ok).toBe(true);
     expect(second.ok).toBe(false);
     if (second.ok) {
       return;
     }
 
     expect(second.error.code).toBe("INSUFFICIENT_FUNDS");
-    expect(buildTransparencySnapshot(CAMPAIGN.id).metrics.availableCents).toBe(
-      0,
-    );
+    expect(
+      buildTransparencySnapshot(first.value.state, CAMPAIGN.id).metrics
+        .availableCents,
+    ).toBe(0);
   });
 });

@@ -72,7 +72,9 @@ A autenticação continua funcionando. As chamadas ao adapter da Solana falham c
 A UI não fala com Solana nem com Privy diretamente. Tudo passa por adapters:
 
 - `src/adapters/auth` — contrato de autenticação; o client chama `/api/auth/*`
-- `src/adapters/solana` — contrato on-chain + mock (Devnet)
+- `src/adapters/solana` — contrato on-chain; o client chama `/api/ledger/*`
 - `src/proxy.ts` — no Next.js 16 o antigo `middleware.ts` virou Proxy; intercepta `/instituicao` e exige `role === "institution"` no cookie assinado
+
+O ledger (doações, saques, pagamentos e notas) vive no servidor, em memória com persistência JSON em `.data/ledger.json`. Mutações exigem o cookie de sessão e, nas operações da instituição, `role === "institution"`.
 
 Variáveis públicas são validadas em `src/lib/env.ts`. O cookie de sessão usa `SESSION_SECRET` só no servidor. Não coloque chaves privadas no client. Copie apenas `.env.example` para `.env.local`.

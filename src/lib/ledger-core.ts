@@ -14,12 +14,13 @@ import { SEED_MOVEMENTS } from "@/data/mocks/movements";
 import type { Donation, InvoiceEvidence, Movement } from "@/domain/types";
 import { getPublicEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
+import {
+  emptyLedgerState,
+  type LedgerState,
+} from "@/lib/ledger-state";
 import { err, ok, type Result } from "@/lib/result";
 import { evidenceUrlSchema } from "@/lib/safe-url";
 
-const DONATIONS_STORAGE_KEY = "lumen.solana.donations";
-const OUTFLOWS_STORAGE_KEY = "lumen.solana.outflows";
-const INVOICE_PATCHES_KEY = "lumen.solana.invoice-patches";
 const BASE58_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -28,14 +29,14 @@ const moneySchema = z.object({
   currency: z.literal("BRL"),
 });
 
-const invoiceSchema = z.object({
+export const invoiceSchema = z.object({
   number: z.string().min(1),
   issuer: z.string().min(1),
   issuedAt: z.string().min(1),
   documentUrl: evidenceUrlSchema,
 });
 
-const storedDonationSchema = z.object({
+export const storedDonationSchema = z.object({
   id: z.string().min(1),
   campaignId: z.string().min(1),
   amount: moneySchema,
@@ -43,7 +44,7 @@ const storedDonationSchema = z.object({
   confirmedAt: z.string().min(1),
 });
 
-const storedOutflowSchema = z.object({
+export const storedOutflowSchema = z.object({
   id: z.string().min(1),
   campaignId: z.string().min(1),
   kind: z.literal("outflow"),
@@ -56,33 +57,70 @@ const storedOutflowSchema = z.object({
   invoice: invoiceSchema.optional(),
 });
 
+export const movementRecordSchema = z.object({
+  id: z.string().min(1),
+  campaignId: z.string().min(1),
+  kind: z.enum(["inflow", "outflow"]),
+  status: z.enum(["on_chain_inflow", "chain_closed", "pending"]),
+  amount: moneySchema,
+  occurredAt: z.string().min(1),
+  description: z.string().min(1),
+  txSignature: z.string().optional(),
+  supplierName: z.string().optional(),
+  invoice: invoiceSchema.optional(),
+  explorerUrl: z.string().min(1).optional(),
+});
+
+export const donationReceiptSchema = z.object({
+  donation: storedDonationSchema,
+  explorerUrl: z.string().min(1),
+});
+
+export const transparencySnapshotSchema = z.object({
+  metrics: z.object({
+    raisedCents: z.number().int().nonnegative(),
+    usedCents: z.number().int().nonnegative(),
+    availableCents: z.number().int().nonnegative(),
+  }),
+  movements: z.array(movementRecordSchema),
+});
+
+export const onChainBalanceSchema = z.object({
+  availableBrlCents: z.number().int().nonnegative(),
+  availableUsdc: z.number().nonnegative(),
+});
+
+export const transparencyScoreSchema = z.object({
+  value: z.number().int().nonnegative(),
+  max: z.literal(100),
+  pendingCount: z.number().int().nonnegative(),
+  penaltyPerPending: z.number().int().positive(),
+});
+
+export const institutionDashboardSchema = z.object({
+  cluster: z.enum(["devnet", "testnet", "mainnet-beta"]),
+  balance: onChainBalanceSchema,
+  score: transparencyScoreSchema,
+  pendingOutflows: z.array(movementRecordSchema),
+  snapshot: transparencySnapshotSchema,
+});
+
 const invoicePatchesSchema = z.record(z.string(), invoiceSchema);
 
-function readJson(key: string): unknown {
-  if (typeof window === "undefined") {
-    return null;
+const ledgerStateSchema = z.object({
+  donations: z.array(storedDonationSchema),
+  outflows: z.array(storedOutflowSchema),
+  invoicePatches: invoicePatchesSchema,
+});
+
+export function parseLedgerState(value: unknown): LedgerState {
+  const parsed = ledgerStateSchema.safeParse(value);
+
+  if (!parsed.success) {
+    return emptyLedgerState();
   }
 
-  const raw = window.localStorage.getItem(key);
-
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    window.localStorage.removeItem(key);
-    return null;
-  }
-}
-
-function writeJson(key: string, value: unknown): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(key, JSON.stringify(value));
+  return parsed.data;
 }
 
 export function createMockSignature(): string {
@@ -117,47 +155,48 @@ export function buildReceiptUrl(invoice: {
   return `/comprovantes/recibo?${params.toString()}`;
 }
 
-export function readStoredDonations(): Donation[] {
-  const parsed = readJson(DONATIONS_STORAGE_KEY);
-
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed.flatMap((item) => {
-    const result = storedDonationSchema.safeParse(item);
-    return result.success ? [result.data] : [];
-  });
+export function appendDonation(
+  state: LedgerState,
+  donation: Donation,
+): LedgerState {
+  return {
+    ...state,
+    donations: [donation, ...state.donations],
+  };
 }
 
-export function appendDonation(donation: Donation): void {
-  writeJson(DONATIONS_STORAGE_KEY, [donation, ...readStoredDonations()]);
+export function appendOutflow(
+  state: LedgerState,
+  movement: Movement,
+): LedgerState {
+  return {
+    ...state,
+    outflows: [movement, ...state.outflows],
+  };
 }
 
-function readStoredOutflows(): Movement[] {
-  const parsed = readJson(OUTFLOWS_STORAGE_KEY);
-
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed.flatMap((item) => {
-    const result = storedOutflowSchema.safeParse(item);
-    return result.success ? [result.data] : [];
-  });
-}
-
-export function appendOutflow(movement: Movement): void {
-  writeJson(OUTFLOWS_STORAGE_KEY, [movement, ...readStoredOutflows()]);
+export function saveInvoicePatch(
+  state: LedgerState,
+  movementId: string,
+  invoice: InvoiceEvidence,
+): LedgerState {
+  return {
+    ...state,
+    invoicePatches: {
+      ...state.invoicePatches,
+      [movementId]: invoice,
+    },
+  };
 }
 
 export function commitAffordableOutflow(
+  state: LedgerState,
   campaignId: string,
   amountCents: number,
   insufficientFundsMessage: string,
   createMovement: () => Movement,
-): Result<MovementRecord> {
-  const snapshot = buildTransparencySnapshot(campaignId);
+): Result<{ record: MovementRecord; state: LedgerState }> {
+  const snapshot = buildTransparencySnapshot(state, campaignId);
 
   if (amountCents > snapshot.metrics.availableCents) {
     return err(
@@ -166,28 +205,12 @@ export function commitAffordableOutflow(
   }
 
   const movement = createMovement();
-  appendOutflow(movement);
+  const next = appendOutflow(state, movement);
 
   return ok({
-    ...movement,
-    explorerUrl: movement.txSignature
-      ? getExplorerTxUrl(movement.txSignature)
-      : undefined,
+    record: toMovementRecord(movement),
+    state: next,
   });
-}
-
-function readInvoicePatches(): Record<string, InvoiceEvidence> {
-  const parsed = invoicePatchesSchema.safeParse(readJson(INVOICE_PATCHES_KEY));
-  return parsed.success ? parsed.data : {};
-}
-
-export function saveInvoicePatch(
-  movementId: string,
-  invoice: InvoiceEvidence,
-): void {
-  const patches = readInvoicePatches();
-  patches[movementId] = invoice;
-  writeJson(INVOICE_PATCHES_KEY, patches);
 }
 
 function donationToMovement(donation: Donation): Movement {
@@ -203,11 +226,12 @@ function donationToMovement(donation: Donation): Movement {
   };
 }
 
-function applyInvoicePatches(movements: Movement[]): Movement[] {
-  const patches = readInvoicePatches();
-
+function applyInvoicePatches(
+  state: LedgerState,
+  movements: Movement[],
+): Movement[] {
   return movements.map((movement) => {
-    const invoice = patches[movement.id];
+    const invoice = state.invoicePatches[movement.id];
 
     if (!invoice) {
       return movement;
@@ -221,7 +245,7 @@ function applyInvoicePatches(movements: Movement[]): Movement[] {
   });
 }
 
-function toMovementRecord(movement: Movement): MovementRecord {
+export function toMovementRecord(movement: Movement): MovementRecord {
   return {
     ...movement,
     explorerUrl: movement.txSignature
@@ -255,17 +279,18 @@ export function toOnChainBalance(availableBrlCents: number): OnChainBalance {
 }
 
 export function buildTransparencySnapshot(
+  state: LedgerState,
   campaignId: string,
 ): TransparencySnapshot {
-  const liveInflows = readStoredDonations()
+  const liveInflows = state.donations
     .filter((donation) => donation.campaignId === campaignId)
     .map(donationToMovement);
 
-  const liveOutflows = readStoredOutflows().filter(
+  const liveOutflows = state.outflows.filter(
     (movement) => movement.campaignId === campaignId,
   );
 
-  const movements = applyInvoicePatches([
+  const movements = applyInvoicePatches(state, [
     ...liveInflows,
     ...liveOutflows,
     ...SEED_MOVEMENTS,
@@ -296,10 +321,11 @@ export function buildTransparencySnapshot(
 }
 
 export function findMovement(
+  state: LedgerState,
   campaignId: string,
   movementId: string,
 ): MovementRecord | undefined {
-  return buildTransparencySnapshot(campaignId).movements.find(
+  return buildTransparencySnapshot(state, campaignId).movements.find(
     (movement) => movement.id === movementId,
   );
 }

@@ -30,6 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# simulated BFF ledger store
+/.data/
+
 # env files — keep .env.example committed, never commit secrets
 .env*
 !.env.example
