@@ -1,6 +1,13 @@
-import type { SolanaPort } from "@/adapters/solana/types";
+import { z } from "zod";
+
+import type {
+  MovementRecord,
+  SolanaPort,
+  TransparencySnapshot,
+} from "@/adapters/solana/types";
 import { CAMPAIGN } from "@/config/campaign";
-import type { Donation } from "@/domain/types";
+import { SEED_MOVEMENTS } from "@/data/mocks/movements";
+import type { Donation, Movement } from "@/domain/types";
 import { delay } from "@/lib/delay";
 import { getPublicEnv, shouldForceMockFailure } from "@/lib/env";
 import { AppError, toAppError } from "@/lib/errors";
@@ -13,6 +20,17 @@ const MOCK_USDC_RATE = 5.6;
 const DONATIONS_STORAGE_KEY = "lumen.solana.donations";
 const BASE58_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+const storedDonationSchema = z.object({
+  id: z.string().min(1),
+  campaignId: z.string().min(1),
+  amount: z.object({
+    amountCents: z.number().int().positive(),
+    currency: z.literal("BRL"),
+  }),
+  txSignature: z.string().min(1),
+  confirmedAt: z.string().min(1),
+});
 
 async function withSimulatedNetwork<T>(
   operation: () => T,
@@ -55,7 +73,15 @@ function readStoredDonations(): Donation[] {
 
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Donation[]) : [];
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.flatMap((item) => {
+      const result = storedDonationSchema.safeParse(item);
+      return result.success ? [result.data] : [];
+    });
   } catch {
     window.localStorage.removeItem(DONATIONS_STORAGE_KEY);
     return [];
@@ -78,6 +104,59 @@ function getExplorerTxUrl(signature: string): string {
   return url.toString();
 }
 
+function donationToMovement(donation: Donation): Movement {
+  return {
+    id: donation.id,
+    campaignId: donation.campaignId,
+    kind: "inflow",
+    status: "on_chain_inflow",
+    amount: donation.amount,
+    occurredAt: donation.confirmedAt,
+    description: "Doação confirmada na Solana",
+    txSignature: donation.txSignature,
+  };
+}
+
+function toMovementRecord(movement: Movement): MovementRecord {
+  return {
+    ...movement,
+    explorerUrl: movement.txSignature
+      ? getExplorerTxUrl(movement.txSignature)
+      : undefined,
+  };
+}
+
+function buildTransparencySnapshot(campaignId: string): TransparencySnapshot {
+  const liveInflows = readStoredDonations()
+    .filter((donation) => donation.campaignId === campaignId)
+    .map(donationToMovement);
+
+  const movements = [...liveInflows, ...SEED_MOVEMENTS]
+    .filter((movement) => movement.campaignId === campaignId)
+    .sort(
+      (left, right) =>
+        new Date(right.occurredAt).getTime() -
+        new Date(left.occurredAt).getTime(),
+    );
+
+  const raisedCents = movements
+    .filter((movement) => movement.kind === "inflow")
+    .reduce((total, movement) => total + movement.amount.amountCents, 0);
+
+  const usedCents = movements
+    .filter((movement) => movement.kind === "outflow")
+    .reduce((total, movement) => total + movement.amount.amountCents, 0);
+
+  return {
+    metrics: {
+      raisedCents,
+      usedCents,
+      availableCents: Math.max(raisedCents - usedCents, 0),
+    },
+    movements: movements.map(toMovementRecord),
+  };
+}
+
 export const mockSolanaAdapter: SolanaPort = {
   getCluster() {
     return getPublicEnv().NEXT_PUBLIC_SOLANA_CLUSTER;
@@ -92,7 +171,8 @@ export const mockSolanaAdapter: SolanaPort = {
         };
       }
 
-      const availableBrlCents = Math.max(CAMPAIGN.raised.amountCents - 620_000, 0);
+      const availableBrlCents = buildTransparencySnapshot(CAMPAIGN.id).metrics
+        .availableCents;
 
       return {
         availableBrlCents,
@@ -157,6 +237,10 @@ export const mockSolanaAdapter: SolanaPort = {
     }
 
     return result;
+  },
+
+  async getTransparencySnapshot(campaignId) {
+    return withSimulatedNetwork(() => buildTransparencySnapshot(campaignId));
   },
 
   getExplorerTxUrl,

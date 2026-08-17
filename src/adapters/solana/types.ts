@@ -1,4 +1,9 @@
-import type { CampaignId, Donation, InstitutionId } from "@/domain/types";
+import type {
+  CampaignId,
+  Donation,
+  InstitutionId,
+  Movement,
+} from "@/domain/types";
 import type { PublicEnv } from "@/lib/env";
 import type { Result } from "@/lib/result";
 
@@ -20,6 +25,21 @@ export type DonationReceipt = {
   explorerUrl: string;
 };
 
+export type TransparencyMetrics = {
+  raisedCents: number;
+  usedCents: number;
+  availableCents: number;
+};
+
+export type MovementRecord = Movement & {
+  explorerUrl?: string;
+};
+
+export type TransparencySnapshot = {
+  metrics: TransparencyMetrics;
+  movements: MovementRecord[];
+};
+
 export type SolanaPort = {
   getCluster(): SolanaCluster;
   getOnChainBalance(
@@ -28,5 +48,8 @@ export type SolanaPort = {
   confirmDonation(
     input: ConfirmDonationInput,
   ): Promise<Result<DonationReceipt>>;
+  getTransparencySnapshot(
+    campaignId: CampaignId,
+  ): Promise<Result<TransparencySnapshot>>;
   getExplorerTxUrl(signature: string): string;
 };

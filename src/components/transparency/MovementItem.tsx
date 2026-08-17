@@ -1,0 +1,76 @@
+import type { MovementRecord } from "@/adapters/solana";
+import { InvoiceEvidenceCard } from "@/components/transparency/InvoiceEvidenceCard";
+import { MovementStatusBadge } from "@/components/transparency/MovementStatusBadge";
+import { formatDateTimePtBr, shortenSignature } from "@/lib/format";
+import { formatBrlFromCents } from "@/lib/money";
+
+type MovementItemProps = {
+  movement: MovementRecord;
+};
+
+export function MovementItem({ movement }: MovementItemProps) {
+  const isInflow = movement.kind === "inflow";
+  const amountPrefix = isInflow ? "+" : "−";
+  const amountClass = isInflow ? "text-inflow" : "text-outflow";
+
+  return (
+    <article className="relative pl-8">
+      <span
+        aria-hidden="true"
+        className={`absolute top-2 left-0 h-3 w-3 rounded-full ${
+          movement.status === "pending"
+            ? "bg-pending"
+            : movement.status === "chain_closed"
+              ? "bg-closed"
+              : "bg-inflow"
+        }`}
+      />
+      <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {isInflow ? "Entrada" : "Saída"}
+            </p>
+            <h3 className="mt-1 text-base font-semibold text-foreground">
+              {movement.description}
+            </h3>
+            {movement.supplierName ? (
+              <p className="mt-1 text-sm text-muted">
+                Fornecedor: {movement.supplierName}
+              </p>
+            ) : null}
+          </div>
+          <div className="text-right">
+            <p className={`text-lg font-semibold tabular-nums ${amountClass}`}>
+              {amountPrefix}
+              {formatBrlFromCents(movement.amount.amountCents)}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {formatDateTimePtBr(movement.occurredAt)}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <MovementStatusBadge status={movement.status} />
+          {movement.txSignature && movement.explorerUrl ? (
+            <a
+              href={movement.explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-teal underline-offset-2 hover:underline"
+            >
+              Tx {shortenSignature(movement.txSignature)} na Devnet
+            </a>
+          ) : null}
+        </div>
+
+        {!isInflow ? (
+          <div className="mt-4">
+            <InvoiceEvidenceCard invoice={movement.invoice} />
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}

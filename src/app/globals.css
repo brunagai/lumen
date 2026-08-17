@@ -13,6 +13,13 @@
   --verified: #0f4c5c;
   --verified-bg: #e6f1f3;
   --muted: #57534e;
+  --inflow: #0f4c5c;
+  --inflow-bg: #e6f1f3;
+  --closed: #1b4332;
+  --closed-bg: #d8f3dc;
+  --pending: #9a6700;
+  --pending-bg: #f8edc8;
+  --outflow: #7c4a1e;
 }
 
 @theme inline {
@@ -28,6 +35,13 @@
   --color-verified: var(--verified);
   --color-verified-bg: var(--verified-bg);
   --color-muted: var(--muted);
+  --color-inflow: var(--inflow);
+  --color-inflow-bg: var(--inflow-bg);
+  --color-closed: var(--closed);
+  --color-closed-bg: var(--closed-bg);
+  --color-pending: var(--pending);
+  --color-pending-bg: var(--pending-bg);
+  --color-outflow: var(--outflow);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

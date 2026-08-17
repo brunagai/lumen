@@ -4,6 +4,9 @@ const tones = {
   safe: "bg-safe-bg text-safe",
   verified: "bg-verified-bg text-verified",
   neutral: "bg-teal-soft text-teal",
+  inflow: "bg-inflow-bg text-inflow",
+  closed: "bg-closed-bg text-closed",
+  pending: "bg-pending-bg text-pending",
 } as const;
 
 type BadgeProps = {
