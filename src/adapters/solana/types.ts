@@ -1,3 +1,4 @@
+import type { Session } from "@/adapters/auth/types";
 import type {
   CampaignId,
   Donation,
@@ -16,8 +17,8 @@ export type OnChainBalance = {
 
 export type ConfirmDonationInput = {
   campaignId: CampaignId;
-  donorId: string;
   amountCents: number;
+  session: Session;
 };
 
 export type DonationReceipt = {
@@ -58,6 +59,7 @@ export type InstitutionDashboardSnapshot = {
 export type PjWithdrawalInput = {
   campaignId: CampaignId;
   amountCents: number;
+  session: Session;
 };
 
 export type PaySupplierInput = {
@@ -66,12 +68,14 @@ export type PaySupplierInput = {
   supplierName: string;
   description: string;
   invoiceNumber: string;
+  session: Session;
 };
 
 export type AttachInvoiceInput = {
   movementId: string;
   invoiceNumber: string;
   issuer: string;
+  session: Session;
 };
 
 export type SolanaPort = {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import type { Result } from "@/lib/result";
+import { AppError } from "@/lib/errors";
+import { err, ok, type Result } from "@/lib/result";
 
 export const AUTH_METHODS = ["email", "google", "wallet"] as const;
 export type AuthMethod = (typeof AUTH_METHODS)[number];
@@ -24,6 +25,8 @@ export type SignInInput = {
 
 export type AuthPort = {
   getSession(): Promise<Result<Session | null>>;
+  requireSession(): Promise<Result<Session>>;
+  verifySession(session: Session): Promise<Result<Session>>;
   signIn(input: SignInInput): Promise<Result<Session>>;
   signOut(): Promise<Result<void>>;
 };
@@ -32,4 +35,19 @@ export function canAccessInstitutionPortal(
   session: Session | null,
 ): session is Session & { role: "institution" } {
   return session?.role === "institution";
+}
+
+export function requireInstitutionRole(
+  session: Session,
+): Result<Session & { role: "institution" }> {
+  if (!canAccessInstitutionPortal(session)) {
+    return err(
+      new AppError(
+        "AUTH_FORBIDDEN",
+        "Apenas a instituição autenticada pode executar esta operação.",
+      ),
+    );
+  }
+
+  return ok(session);
 }

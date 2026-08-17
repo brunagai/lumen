@@ -88,14 +88,14 @@ export function DonationCard() {
   }, []);
 
   const runDonation = useCallback(
-    async (donorId: string, amount: QuickDonationBrl) => {
+    async (donorSession: Session, amount: QuickDonationBrl) => {
       setDonateState({ status: "loading" });
 
       try {
         const result = await solanaAdapter.confirmDonation({
           campaignId: CAMPAIGN.id,
-          donorId,
           amountCents: brlToCents(amount),
+          session: donorSession,
         });
 
         if (result.ok) {
@@ -122,7 +122,7 @@ export function DonationCard() {
       return;
     }
 
-    void runDonation(session.userId, selectedAmount);
+    void runDonation(session, selectedAmount);
   }
 
   function handleAuthenticated(nextSession: Session) {
@@ -132,7 +132,7 @@ export function DonationCard() {
       return;
     }
 
-    void runDonation(nextSession.userId, selectedAmount);
+    void runDonation(nextSession, selectedAmount);
   }
 
   function handleRetry() {
@@ -140,7 +140,7 @@ export function DonationCard() {
       return;
     }
 
-    void runDonation(session.userId, selectedAmount);
+    void runDonation(session, selectedAmount);
   }
 
   async function handleRetrySnapshot() {

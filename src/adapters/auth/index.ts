@@ -1,6 +1,7 @@
 export { mockAuthAdapter as authAdapter } from "@/adapters/auth/mock";
 export {
   canAccessInstitutionPortal,
+  requireInstitutionRole,
   sessionSchema,
   type AuthMethod,
   type AuthPort,

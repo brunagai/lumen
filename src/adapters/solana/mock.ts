@@ -1,4 +1,9 @@
 import {
+  authAdapter,
+  requireInstitutionRole,
+  type Session,
+} from "@/adapters/auth";
+import {
   appendDonation,
   appendOutflow,
   buildReceiptUrl,
@@ -53,6 +58,23 @@ function isApprovedSupplier(name: string): boolean {
   return (APPROVED_SUPPLIERS as readonly string[]).includes(name);
 }
 
+async function authorizeLedgerMutation(
+  presented: Session,
+  options: { institutionOnly: boolean },
+): Promise<Result<Session>> {
+  const verified = await authAdapter.verifySession(presented);
+
+  if (!verified.ok) {
+    return verified;
+  }
+
+  if (options.institutionOnly) {
+    return requireInstitutionRole(verified.value);
+  }
+
+  return verified;
+}
+
 export const mockSolanaAdapter: SolanaPort = {
   getCluster() {
     return getPublicEnv().NEXT_PUBLIC_SOLANA_CLUSTER;
@@ -71,6 +93,14 @@ export const mockSolanaAdapter: SolanaPort = {
   },
 
   async confirmDonation(input) {
+    const authorized = await authorizeLedgerMutation(input.session, {
+      institutionOnly: false,
+    });
+
+    if (!authorized.ok) {
+      return authorized;
+    }
+
     const amountBrl = input.amountCents / 100;
 
     if (
@@ -83,15 +113,6 @@ export const mockSolanaAdapter: SolanaPort = {
         new AppError(
           "INVALID_AMOUNT",
           "Selecione um valor de doação válido (R$ 10, R$ 50 ou R$ 100).",
-        ),
-      );
-    }
-
-    if (!input.donorId.trim()) {
-      return err(
-        new AppError(
-          "AUTH_UNAUTHENTICATED",
-          "Entre para registrar a doação na Solana.",
         ),
       );
     }
@@ -157,6 +178,14 @@ export const mockSolanaAdapter: SolanaPort = {
   },
 
   async requestPjWithdrawal(input) {
+    const authorized = await authorizeLedgerMutation(input.session, {
+      institutionOnly: true,
+    });
+
+    if (!authorized.ok) {
+      return authorized;
+    }
+
     if (input.campaignId !== CAMPAIGN.id || !Number.isInteger(input.amountCents)) {
       return err(
         new AppError("INVALID_AMOUNT", "Informe um valor de saque válido."),
@@ -206,6 +235,14 @@ export const mockSolanaAdapter: SolanaPort = {
   },
 
   async paySupplier(input) {
+    const authorized = await authorizeLedgerMutation(input.session, {
+      institutionOnly: true,
+    });
+
+    if (!authorized.ok) {
+      return authorized;
+    }
+
     const supplierName = sanitizeText(input.supplierName, 80);
     const description = sanitizeText(input.description, 140);
     const invoiceNumber = sanitizeText(input.invoiceNumber, 40);
@@ -286,6 +323,14 @@ export const mockSolanaAdapter: SolanaPort = {
   },
 
   async attachInvoice(input) {
+    const authorized = await authorizeLedgerMutation(input.session, {
+      institutionOnly: true,
+    });
+
+    if (!authorized.ok) {
+      return authorized;
+    }
+
     const invoiceNumber = sanitizeText(input.invoiceNumber, 40);
     const issuer = sanitizeText(input.issuer, 80);
 

@@ -6,7 +6,7 @@ import {
 } from "@/adapters/auth/types";
 import { INSTITUTION } from "@/config/campaign";
 import { delay } from "@/lib/delay";
-import { toAppError } from "@/lib/errors";
+import { AppError, toAppError } from "@/lib/errors";
 import { err, ok, type Result } from "@/lib/result";
 
 const STORAGE_KEY = "lumen.auth.session";
@@ -80,6 +80,54 @@ export const mockAuthAdapter: AuthPort = {
     } catch (cause) {
       return err(toAppError(cause));
     }
+  },
+
+  async requireSession() {
+    const result = await this.getSession();
+
+    if (!result.ok) {
+      return result;
+    }
+
+    if (!result.value) {
+      return err(
+        new AppError(
+          "AUTH_UNAUTHENTICATED",
+          "Entre para continuar.",
+        ),
+      );
+    }
+
+    return ok(result.value);
+  },
+
+  async verifySession(presented) {
+    const parsed = sessionSchema.safeParse(presented);
+
+    if (!parsed.success) {
+      return err(new AppError("AUTH_UNAUTHENTICATED", "Sessão inválida."));
+    }
+
+    const current = await this.requireSession();
+
+    if (!current.ok) {
+      return current;
+    }
+
+    if (
+      current.value.userId !== parsed.data.userId ||
+      current.value.role !== parsed.data.role ||
+      current.value.method !== parsed.data.method
+    ) {
+      return err(
+        new AppError(
+          "AUTH_FORBIDDEN",
+          "A sessão informada não corresponde ao usuário autenticado.",
+        ),
+      );
+    }
+
+    return ok(current.value);
   },
 
   async signIn(input) {

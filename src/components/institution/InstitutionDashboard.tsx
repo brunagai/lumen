@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { canAccessInstitutionPortal } from "@/adapters/auth";
 import {
   solanaAdapter,
   type InstitutionDashboardSnapshot,
@@ -19,7 +20,7 @@ import type { AsyncState } from "@/lib/async-state";
 import { toAppError } from "@/lib/errors";
 
 export function InstitutionDashboard() {
-  const { signOut } = useAuth();
+  const { session, signOut } = useAuth();
   const [state, setState] = useState<
     AsyncState<InstitutionDashboardSnapshot>
   >({
@@ -97,9 +98,17 @@ export function InstitutionDashboard() {
     setWithdrawSubmitting(true);
 
     try {
+      if (!canAccessInstitutionPortal(session)) {
+        setWithdrawError(
+          "Apenas a instituição autenticada pode executar esta operação.",
+        );
+        return false;
+      }
+
       const result = await solanaAdapter.requestPjWithdrawal({
         campaignId: CAMPAIGN.id,
         amountCents,
+        session,
       });
 
       if (!result.ok) {
@@ -127,9 +136,17 @@ export function InstitutionDashboard() {
     setPaySubmitting(true);
 
     try {
+      if (!canAccessInstitutionPortal(session)) {
+        setPayError(
+          "Apenas a instituição autenticada pode executar esta operação.",
+        );
+        return false;
+      }
+
       const result = await solanaAdapter.paySupplier({
         campaignId: CAMPAIGN.id,
         ...input,
+        session,
       });
 
       if (!result.ok) {
@@ -156,7 +173,17 @@ export function InstitutionDashboard() {
     setAttachSubmittingId(input.movementId);
 
     try {
-      const result = await solanaAdapter.attachInvoice(input);
+      if (!canAccessInstitutionPortal(session)) {
+        setAttachError(
+          "Apenas a instituição autenticada pode executar esta operação.",
+        );
+        return false;
+      }
+
+      const result = await solanaAdapter.attachInvoice({
+        ...input,
+        session,
+      });
 
       if (!result.ok) {
         setAttachError(result.error.message);
