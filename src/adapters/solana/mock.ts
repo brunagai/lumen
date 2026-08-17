@@ -15,7 +15,7 @@ import {
   saveInvoicePatch,
   toOnChainBalance,
 } from "@/adapters/solana/ledger";
-import type { SolanaPort } from "@/adapters/solana/types";
+import type { MovementRecord, SolanaPort } from "@/adapters/solana/types";
 import { CAMPAIGN } from "@/config/campaign";
 import {
   APPROVED_SUPPLIERS,
@@ -34,11 +34,12 @@ const DONATION_LATENCY_MS = 900;
 async function withSimulatedNetwork<T>(
   operation: () => T,
   latencyMs = MOCK_LATENCY_MS,
+  options?: { ignoreMockFailure?: boolean },
 ): Promise<Result<T>> {
   try {
     await delay(latencyMs);
 
-    if (shouldForceMockFailure()) {
+    if (!options?.ignoreMockFailure && shouldForceMockFailure()) {
       return err(
         new AppError("MOCK_FAILURE", "Falha simulada na consulta à Solana."),
       );
@@ -56,6 +57,55 @@ function sanitizeText(value: string, maxLength: number): string {
 
 function isApprovedSupplier(name: string): boolean {
   return (APPROVED_SUPPLIERS as readonly string[]).includes(name);
+}
+
+const OUTFLOW_LOCK_NAME = "lumen.solana.outflow";
+
+async function withExclusiveLedgerAccess<T>(
+  operation: () => Result<T>,
+): Promise<Result<T>> {
+  if (typeof navigator !== "undefined" && navigator.locks) {
+    return navigator.locks.request(OUTFLOW_LOCK_NAME, () => operation());
+  }
+
+  return operation();
+}
+
+function commitAffordableOutflow(
+  campaignId: string,
+  amountCents: number,
+  insufficientFundsMessage: string,
+  createMovement: () => Movement,
+): Result<MovementRecord> {
+  const snapshot = buildTransparencySnapshot(campaignId);
+
+  if (amountCents > snapshot.metrics.availableCents) {
+    return err(
+      new AppError("INSUFFICIENT_FUNDS", insufficientFundsMessage),
+    );
+  }
+
+  const movement = createMovement();
+  appendOutflow(movement);
+
+  return ok({
+    ...movement,
+    explorerUrl: movement.txSignature
+      ? getExplorerTxUrl(movement.txSignature)
+      : undefined,
+  });
+}
+
+async function rejectWhenMockFailureForced(): Promise<Result<never> | null> {
+  if (!shouldForceMockFailure()) {
+    return null;
+  }
+
+  await delay(MOCK_LATENCY_MS);
+
+  return err(
+    new AppError("MOCK_FAILURE", "Falha simulada na consulta à Solana."),
+  );
 }
 
 async function authorizeLedgerMutation(
@@ -192,46 +242,50 @@ export const mockSolanaAdapter: SolanaPort = {
       );
     }
 
-    const snapshot = buildTransparencySnapshot(input.campaignId);
-
-    if (input.amountCents > snapshot.metrics.availableCents) {
-      return err(
-        new AppError(
-          "INSUFFICIENT_FUNDS",
-          "Saldo on-chain insuficiente para este saque.",
-        ),
-      );
-    }
-
     if (input.amountCents <= 0) {
       return err(
         new AppError("INVALID_AMOUNT", "O valor do saque deve ser maior que zero."),
       );
     }
 
-    return withSimulatedNetwork(() => {
-      const occurredAt = new Date().toISOString();
-      const movement: Movement = {
-        id: crypto.randomUUID(),
-        campaignId: input.campaignId,
-        kind: "outflow",
-        status: "pending",
-        amount: { amountCents: input.amountCents, currency: "BRL" },
-        occurredAt,
-        description: "Saque para conta PJ — nota fiscal pendente",
-        supplierName: PJ_ACCOUNT_LABEL,
-        txSignature: createMockSignature(),
-      };
+    const forcedFailure = await rejectWhenMockFailureForced();
 
-      appendOutflow(movement);
+    if (forcedFailure) {
+      return forcedFailure;
+    }
 
-      return {
-        ...movement,
-        explorerUrl: movement.txSignature
-          ? getExplorerTxUrl(movement.txSignature)
-          : undefined,
-      };
-    });
+    const committed = await withExclusiveLedgerAccess(() =>
+      commitAffordableOutflow(
+        input.campaignId,
+        input.amountCents,
+        "Saldo on-chain insuficiente para este saque.",
+        () => {
+          const occurredAt = new Date().toISOString();
+
+          return {
+            id: crypto.randomUUID(),
+            campaignId: input.campaignId,
+            kind: "outflow",
+            status: "pending",
+            amount: { amountCents: input.amountCents, currency: "BRL" },
+            occurredAt,
+            description: "Saque para conta PJ — nota fiscal pendente",
+            supplierName: PJ_ACCOUNT_LABEL,
+            txSignature: createMockSignature(),
+          };
+        },
+      ),
+    );
+
+    if (!committed.ok) {
+      return committed;
+    }
+
+    return withSimulatedNetwork(
+      () => committed.value,
+      MOCK_LATENCY_MS,
+      { ignoreMockFailure: true },
+    );
   },
 
   async paySupplier(input) {
@@ -275,51 +329,56 @@ export const mockSolanaAdapter: SolanaPort = {
       );
     }
 
-    const snapshot = buildTransparencySnapshot(input.campaignId);
+    const forcedFailure = await rejectWhenMockFailureForced();
 
-    if (input.amountCents > snapshot.metrics.availableCents) {
-      return err(
-        new AppError(
-          "INSUFFICIENT_FUNDS",
-          "Saldo on-chain insuficiente para pagar este fornecedor.",
-        ),
-      );
+    if (forcedFailure) {
+      return forcedFailure;
     }
 
-    return withSimulatedNetwork(() => {
-      const occurredAt = new Date().toISOString();
-      const invoice = {
-        number: invoiceNumber,
-        issuer: supplierName,
-        issuedAt: occurredAt,
-        documentUrl: buildReceiptUrl({
-          number: invoiceNumber,
-          issuer: supplierName,
-          amountCents: input.amountCents,
-          issuedAt: occurredAt,
-        }),
-      };
+    const committed = await withExclusiveLedgerAccess(() =>
+      commitAffordableOutflow(
+        input.campaignId,
+        input.amountCents,
+        "Saldo on-chain insuficiente para pagar este fornecedor.",
+        () => {
+          const occurredAt = new Date().toISOString();
+          const invoice = {
+            number: invoiceNumber,
+            issuer: supplierName,
+            issuedAt: occurredAt,
+            documentUrl: buildReceiptUrl({
+              number: invoiceNumber,
+              issuer: supplierName,
+              amountCents: input.amountCents,
+              issuedAt: occurredAt,
+            }),
+          };
 
-      const movement: Movement = {
-        id: crypto.randomUUID(),
-        campaignId: input.campaignId,
-        kind: "outflow",
-        status: "chain_closed",
-        amount: { amountCents: input.amountCents, currency: "BRL" },
-        occurredAt,
-        description,
-        supplierName,
-        txSignature: createMockSignature(),
-        invoice,
-      };
+          return {
+            id: crypto.randomUUID(),
+            campaignId: input.campaignId,
+            kind: "outflow",
+            status: "chain_closed",
+            amount: { amountCents: input.amountCents, currency: "BRL" },
+            occurredAt,
+            description,
+            supplierName,
+            txSignature: createMockSignature(),
+            invoice,
+          };
+        },
+      ),
+    );
 
-      appendOutflow(movement);
+    if (!committed.ok) {
+      return committed;
+    }
 
-      return {
-        ...movement,
-        explorerUrl: getExplorerTxUrl(movement.txSignature ?? ""),
-      };
-    });
+    return withSimulatedNetwork(
+      () => committed.value,
+      MOCK_LATENCY_MS,
+      { ignoreMockFailure: true },
+    );
   },
 
   async attachInvoice(input) {
