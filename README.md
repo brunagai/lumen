@@ -1,8 +1,44 @@
 # Lúmen.
 
-Plataforma de doações transparentes e rastreáveis baseada em Solana. Este repositório é a base demonstrável do produto: o doador acompanha o dinheiro on-chain e a instituição presta contas com nota fiscal.
+O Lúmen nasceu no **Hackathon da Wohackers**, na **trilha Solana**.
 
-## Como executar
+É um protótipo de doações transparentes: a pessoa doa em **reais**, acompanha o caminho do dinheiro e a instituição presta contas com nota fiscal. A ideia é que qualquer pessoa consiga entender o que aconteceu com a doação, mesmo sem saber o que é criptomoeda.
+
+## Por que Solana?
+
+Escolhemos a trilha Solana porque a blockchain deixa um **rastro público** de cada movimento: dá para mostrar que o dinheiro entrou, que saiu e para onde foi.
+
+Neste protótipo usamos da Solana:
+
+- a **Devnet** (rede de testes, sem dinheiro real)
+- o **Explorer** da Solana, para abrir o comprovante de cada transação no navegador
+- uma **assinatura de transação** (o “código” da operação na rede)
+- a ideia de saldo **on-chain** (o que ainda está na carteira da campanha)
+- uma conversão simulada para **USDC** no painel da instituição, só para quem quiser ver o equivalente em cripto
+
+Os valores que a doadora escolhe e vê na tela são sempre em **reais**. A Solana entra como o “cartório digital” por trás: o registro da doação, o link da Devnet e o saldo da campanha.
+
+## Por que Privy?
+
+Quem não convive com cripto não precisa entender carteira, token ou Devnet para doar.
+
+O **Privy** entra no fluxo de entrada (e-mail, Google ou carteira) para a pessoa se identificar sem virar especialista em Web3. Na interface, o Lúmen **mostra tudo em reais**. Assim a Solana continua por baixo, mas a doadora pensa em R$ 10, R$ 50 ou R$ 100 — o mesmo jeito de doar que ela já conhece.
+
+No hackathon esse login é uma **simulação** do Privy, pensada para a demo: o importante é o gesto (entrar e doar em reais), não configurar uma carteira de verdade.
+
+## O que o Lúmen mostra
+
+1. **Doar** — a pessoa escolhe um valor em reais e confirma.
+2. **Trilha pública** — qualquer um vê o que entrou, o que foi usado e o que ainda está disponível.
+3. **Prestação de contas** — a Casa da Mulher registra saque, pagamento a fornecedor e anexa a nota fiscal.
+
+Quando a nota está vinculada, a trilha mostra **cadeia fechada**. Se ainda falta o comprovante, aparece **pendente**.
+
+Isto é um **protótipo para o hackathon**, não uma operação com dinheiro real.
+
+## Como abrir no computador
+
+No terminal, na pasta do projeto:
 
 ```bash
 npm install
@@ -10,83 +46,76 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Abra [http://localhost:3000](http://localhost:3000).
+Depois abra [http://localhost:3000](http://localhost:3000).
 
-Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`, `npm run smoke`.
+Outros comandos, se precisar: `npm run build`, `npm run start`, `npm run lint`, `npm test`, `npm run smoke`.
 
-## Fluxo de demonstração (pitch)
+## Roteiro rápido para apresentar
 
-Use esta sequência em apresentações. Leva poucos minutos e cobre o ciclo completo do dinheiro.
+### 1. Doar (`/`)
 
-### 1. Doar na Home (`/`)
-
-1. Mostre o cabeçalho **Lúmen.**, os selos **Ambiente Seguro** e **Instituição Verificada**, e a campanha **Fundo de Amparo: Casa da Mulher**.
-2. Selecione **R$ 10**, **R$ 50** ou **R$ 100**. Sem valor selecionado, o botão permanece desabilitado.
+1. Mostre o logo **Lúmen**, os selos **Ambiente Seguro** e **Instituição Verificada**, e a campanha **Fundo de Amparo: Casa da Mulher**.
+2. Escolha **R$ 10**, **R$ 50** ou **R$ 100**. Sem valor, o botão fica desligado.
 3. Clique em **Entrar para Doar**.
-4. No modal (simulação Privy), escolha e-mail, Google ou carteira.
-5. Aguarde o estado **Registrando na Solana...**.
-6. Confirme a tela **Muito Obrigado!** e clique em **Acompanhar destino do dinheiro**.
+4. No modal (Privy simulado), escolha e-mail, Google ou carteira.
+5. Espere **Registrando na Solana...**.
+6. Na tela **Muito Obrigado!**, clique em **Acompanhar destino do dinheiro**.
 
-Se a sessão da doadora já existir, o clique registra a transação direto, sem abrir o modal.
+Se a pessoa já estiver “logada”, a doação segue direto, sem abrir o modal de novo.
 
-### 2. Acompanhar na Trilha (`/transparencia`)
+### 2. Trilha pública (`/transparencia`)
 
-1. Apresente as métricas: **Total Arrecadado**, **Total Utilizado** e **Disponível On-Chain**.
-2. Na timeline, mostre uma **Entrada on-chain** (a doação recém-feita aparece no topo, com link da Devnet).
-3. Mostre uma saída com **Cadeia fechada** (nota fiscal vinculada e comprovante).
-4. Mostre a saída **Pendente** (transporte) — a evidência ainda não foi anexada.
+1. Mostre **Total Arrecadado**, **Total Utilizado** e **Disponível On-Chain** — sempre em reais.
+2. Na linha do tempo, a doação nova aparece no topo, com link para a Devnet.
+3. Mostre uma saída **Cadeia fechada** (já tem nota fiscal).
+4. Mostre uma saída **Pendente** (ainda falta o comprovante).
 
-Essa é a tese do produto: o doador vê entrada, uso e comprovante no mesmo lugar.
+A tese do produto: entrada, uso e comprovante no mesmo lugar, em linguagem de reais.
 
-### 3. Prestar contas no Dashboard (`/instituicao`)
+### 3. Painel da instituição (`/instituicao`)
 
-1. Clique em **Instituição** no menu. Sem sessão institucional, o servidor redireciona para a Home com o cartão **Acesso restrito**.
-2. Clique em **Entrar como Casa da Mulher**. O login grava um cookie httpOnly assinado no servidor.
-3. Mostre o **saldo on-chain** (R$ e USDC simulado na Solana Devnet) e o **Score de Transparência** (começa em 92/100 por causa da NF pendente).
-4. **Saque para conta PJ:** informe um valor (ex.: `200`) e solicite o saque. O saldo cai, o score cai e a trilha ganha uma saída **Pendente**.
+1. Clique em **Instituição**. Sem acesso, o site volta para a Home com **Acesso restrito**.
+2. Clique em **Entrar como Casa da Mulher**.
+3. Mostre o saldo em **reais** e o equivalente simulado em USDC, além do **Score de Transparência**.
+4. **Saque para conta PJ:** um valor (ex.: 200). O saldo cai e a trilha ganha uma saída pendente.
 5. **Pagar fornecedor:** escolha um homologado, descreva a despesa, informe a NF e o valor. A cadeia fecha na hora.
-6. **Anexar recibo:** preencha número e emitente da pendência e clique em **Anexar e fechar cadeia**. O score sobe e a trilha pública atualiza.
+6. **Anexar recibo:** número e emitente da pendência, depois **Anexar e fechar cadeia**. O score sobe e a trilha pública atualiza.
 
-Formulários vazios ou valor acima do saldo são recusados na hora, sem chamar a rede.
+Valor vazio ou acima do saldo é recusado na hora.
 
-### 4. Encerrar a narrativa
+### 4. Fechar a história
 
-Volte para `/transparencia` e mostre o ciclo fechado: doação na Home, rastreio público e prestação de contas da instituição.
+Volte para `/transparencia` e mostre o ciclo: doação na Home, rastreio público e prestação de contas.
 
-## Teste de resiliência (falha na Solana)
+## Se quiser mostrar uma falha na rede
 
-1. Em `.env.local`, defina `NEXT_PUBLIC_MOCK_FORCE_ERROR=true`.
+1. Em `.env.local`, coloque `NEXT_PUBLIC_MOCK_FORCE_ERROR=true`.
 2. Reinicie o `npm run dev`.
-3. Tente doar, abrir a trilha ou registrar uma saída no dashboard.
+3. Tente doar, abrir a trilha ou registrar uma saída.
 
-A autenticação continua funcionando. As chamadas ao adapter da Solana falham com mensagem visível e botão **Tentar novamente**. Remova a flag e reinicie para voltar ao fluxo normal.
+O login continua. A parte da Solana mostra erro e o botão **Tentar novamente**. Apague a flag e reinicie para voltar ao normal.
 
-## Rotas
+## Páginas
 
-- `/` — vitrine da campanha
-- `/transparencia` — trilha pública
-- `/instituicao` — dashboard da Casa da Mulher (protegido no servidor)
+- `/` — campanha e doação
+- `/transparencia` — trilha pública (qualquer pessoa pode ver)
+- `/instituicao` — painel da Casa da Mulher (só com acesso institucional)
 
-Contrato HTTP de `/api/auth/*` e `/api/ledger/*`: [API.md](./API.md). Auditoria pós-sprint e smoke: [AUDITORIA.md](./AUDITORIA.md).
+Detalhes técnicos das APIs: [API.md](./API.md). Relatório de auditoria e smoke: [AUDITORIA.md](./AUDITORIA.md).
 
-Smoke HTTP (servidor já no ar, porta 3000 por padrão):
+Para o teste HTTP automático, com o site já rodando (`npm run start` na porta 3000):
 
 ```bash
-npm run build
-npm run start
+npm run smoke
 ```
 
-Em outro terminal: `npm run smoke`. Se a porta for outra, `SMOKE_BASE=http://127.0.0.1:3010 npm run smoke`.
+Se a porta for outra: `SMOKE_BASE=http://127.0.0.1:3010 npm run smoke`.
 
-## Arquitetura
+## Como o código está organizado (resumo)
 
-A UI não fala com Solana nem com Privy diretamente. Tudo passa por adapters:
+A tela **não fala direto** com Solana nem com Privy. Tudo passa por “adaptadores”: a interface pede “doar” ou “entrar”, e o servidor registra.
 
-- `src/adapters/auth` — contrato de autenticação; o client chama `/api/auth/*`
-- `src/adapters/solana` — contrato on-chain; o client chama `/api/ledger/*`
-- `src/adapters/ledger` — persistência do ledger (`LedgerRepository`); JSON hoje, banco relacional depois
-- `src/proxy.ts` — no Next.js 16 o antigo `middleware.ts` virou Proxy; intercepta `/instituicao` e exige `role === "institution"` no cookie assinado
-
-O ledger (doações, saques, pagamentos e notas) vive no servidor. As rotas em `src/app/api/ledger/` só fazem HTTP: o acesso ao estado passa pela interface `LedgerRepository` (`src/adapters/ledger/ledger-repository.ts`). A implementação atual persiste em `.data/ledger.json`; um adaptador Prisma/PostgreSQL pode substituí-la sem mudar as rotas. A trilha pública pagina movimentações (`page` e `pageSize`, até 50 por página). Mutações exigem o cookie de sessão e, nas operações da instituição, `role === "institution"`. Recibos em `/comprovantes/recibo` só são exibidos com HMAC válido. A CSP é emitida por requisição no Proxy, com nonce e sem `'unsafe-inline'`.
-
-Variáveis públicas são validadas em `src/lib/env.ts`. O cookie de sessão usa `SESSION_SECRET` só no servidor. Não coloque chaves privadas no client. Copie apenas `.env.example` para `.env.local`.
+- Login e sessão ficam no servidor (cookie seguro). Só a instituição abre `/instituicao`.
+- Doações, saques, pagamentos e notas também ficam no servidor. Hoje isso é um arquivo local (`.data/ledger.json`); no futuro pode virar banco de dados sem mudar as telas.
+- Recibos só abrem se a assinatura da URL for válida.
+- Segredos (como `SESSION_SECRET`) ficam só no servidor. Copie `.env.example` para `.env.local` e não publique esse arquivo.
