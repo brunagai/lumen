@@ -12,7 +12,7 @@ npm run dev
 
 Abra [http://localhost:3000](http://localhost:3000).
 
-Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`.
+Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`, `npm run smoke`.
 
 ## Fluxo de demonstração (pitch)
 
@@ -67,7 +67,16 @@ A autenticação continua funcionando. As chamadas ao adapter da Solana falham c
 - `/transparencia` — trilha pública
 - `/instituicao` — dashboard da Casa da Mulher (protegido no servidor)
 
-Contrato HTTP de `/api/auth/*` e `/api/ledger/*`: [API.md](./API.md).
+Contrato HTTP de `/api/auth/*` e `/api/ledger/*`: [API.md](./API.md). Auditoria pós-sprint e smoke: [AUDITORIA.md](./AUDITORIA.md).
+
+Smoke HTTP (servidor já no ar, porta 3000 por padrão):
+
+```bash
+npm run build
+npm run start
+```
+
+Em outro terminal: `npm run smoke`. Se a porta for outra, `SMOKE_BASE=http://127.0.0.1:3010 npm run smoke`.
 
 ## Arquitetura
 
