@@ -67,6 +67,8 @@ A autenticação continua funcionando. As chamadas ao adapter da Solana falham c
 - `/transparencia` — trilha pública
 - `/instituicao` — dashboard da Casa da Mulher (protegido no servidor)
 
+Contrato HTTP de `/api/auth/*` e `/api/ledger/*`: [API.md](./API.md).
+
 ## Arquitetura
 
 A UI não fala com Solana nem com Privy diretamente. Tudo passa por adapters:

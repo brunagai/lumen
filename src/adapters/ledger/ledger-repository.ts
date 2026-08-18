@@ -14,6 +14,15 @@ export type LedgerRepository = {
 const DEFAULT_LEDGER_DIRECTORY = path.join(process.cwd(), ".data");
 const DEFAULT_LEDGER_FILE = path.join(DEFAULT_LEDGER_DIRECTORY, "ledger.json");
 
+/**
+ * Adapter local de arquivo. Serve para o pitch e para `next dev` num disco persistente.
+ *
+ * Não use isto em deploy serverless (Vercel, AWS Lambda, etc.): o filesystem é
+ * efêmero, instâncias não compartilham `.data/ledger.json`, e escritas concorrentes
+ * se perdem. Antes de produção, troque `getLedgerRepository()` por uma implementação
+ * de `LedgerRepository` em banco relacional (Prisma/PostgreSQL). As rotas em
+ * `/api/ledger/*` não precisam mudar.
+ */
 export class JsonFileLedgerRepository implements LedgerRepository {
   private memory: LedgerState | null = null;
   private readonly withExclusiveLock = createExclusiveLock();

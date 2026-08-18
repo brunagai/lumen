@@ -30,11 +30,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# simulated BFF ledger store
-/.data/
+# simulated BFF ledger store — never commit (any .data directory)
+.data/
+**/.data/
 
-# env files — keep .env.example committed, never commit secrets
-.env*
+# env files — never commit secrets; keep only .env.example in git
+.env
+.env.*
+.env*.local
 !.env.example
 
 # vercel
