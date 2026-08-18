@@ -30,7 +30,7 @@ export function InstitutionSignInCard({ motivo }: InstitutionSignInCardProps) {
 
   return (
     <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-teal sm:text-3xl">
+      <h1 className="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
         Acesso restrito
       </h1>
       <p className="mt-3 max-w-2xl text-muted">
@@ -39,12 +39,13 @@ export function InstitutionSignInCard({ motivo }: InstitutionSignInCardProps) {
           : "Esta área é exclusiva da Casa da Mulher. Simule o acesso institucional para abrir o dashboard."}
       </p>
       {error ? (
-        <p className="mt-4 text-sm text-red-800" role="alert">
+        <p className="mt-4 text-sm text-danger" role="alert">
           {error.message}
         </p>
       ) : null}
       <div className="mt-6">
         <Button
+          variant="institutional"
           className="w-full sm:w-auto"
           onClick={() => void handleSimulateAccess()}
           loading={isSigningIn}

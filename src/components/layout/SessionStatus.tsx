@@ -20,10 +20,10 @@ export function SessionStatus() {
   }
 
   return (
-    <div className="flex items-center gap-2 sm:border-l sm:border-border sm:pl-3">
-      <span className="text-sm text-muted">{session.displayName}</span>
+    <div className="flex items-center gap-2 sm:border-l sm:border-white/25 sm:pl-3">
+      <span className="text-sm text-white/90">{session.displayName}</span>
       <Button
-        variant="ghost"
+        variant="inverse"
         className="px-2 py-1"
         loading={isSigningOut}
         onClick={() => void handleSignOut()}

@@ -94,7 +94,7 @@ export function DonationCard() {
   return (
     <section className="flex flex-col gap-6">
       <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-teal sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
           {CAMPAIGN.title}
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
@@ -122,15 +122,15 @@ export function DonationCard() {
         {snapshotState.status === "success" ? (
           <>
             <dl className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl bg-teal-soft p-4">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-teal">
+              <div className="rounded-xl bg-accent-soft p-4">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-primary">
                   Arrecadado
                 </dt>
-                <dd className="mt-1 text-xl font-semibold break-words text-teal">
+                <dd className="mt-1 text-xl font-semibold break-words text-primary">
                   {formatBrlFromCents(snapshotState.data.metrics.raisedCents)}
                 </dd>
               </div>
-              <div className="rounded-xl bg-background p-4">
+              <div className="rounded-xl bg-base p-4">
                 <dt className="text-xs font-semibold uppercase tracking-wide text-muted">
                   Meta
                 </dt>

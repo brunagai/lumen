@@ -7,16 +7,15 @@ import { Badge } from "@/components/ui/Badge";
 
 export function Header() {
   return (
-    <header className="border-b border-border bg-surface">
+    <header className="bg-secondary text-white">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
           <Link
             href="/"
-            className="flex items-center gap-2 text-teal"
+            className="flex items-center rounded-xl bg-base p-1.5"
             aria-label="Lúmen. Página inicial"
           >
             <LumenMark />
-            <span className="text-xl font-semibold tracking-tight">Lúmen.</span>
           </Link>
 
           <div className="flex flex-wrap items-center gap-2">

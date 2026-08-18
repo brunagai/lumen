@@ -59,7 +59,7 @@ export function AttachInvoicePanel({
 
   return (
     <section className="rounded-2xl border border-border bg-surface p-4 sm:p-6">
-      <h2 className="text-lg font-semibold text-teal">Anexar recibo / nota fiscal</h2>
+      <h2 className="text-lg font-semibold text-primary">Anexar recibo / nota fiscal</h2>
       <p className="mt-1 text-sm text-muted">
         Feche as saídas pendentes para restaurar o score e atualizar a trilha
         pública.
@@ -123,6 +123,7 @@ export function AttachInvoicePanel({
                 </div>
                 <div className="mt-3">
                   <Button
+                    variant="institutional"
                     className="w-full sm:w-auto"
                     loading={isSubmitting}
                     onClick={() => void handleAttach(movement)}
@@ -137,7 +138,7 @@ export function AttachInvoicePanel({
       )}
 
       {localError || errorMessage ? (
-        <p className="mt-4 text-sm text-red-800" role="alert">
+        <p className="mt-4 text-sm text-danger" role="alert">
           {localError ?? errorMessage}
         </p>
       ) : null}

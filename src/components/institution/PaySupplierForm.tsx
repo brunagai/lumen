@@ -81,7 +81,7 @@ export function PaySupplierForm({
       className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:p-6"
     >
       <div>
-        <h2 className="text-lg font-semibold text-teal">Pagar fornecedor</h2>
+        <h2 className="text-lg font-semibold text-primary">Pagar fornecedor</h2>
         <p className="mt-1 text-sm text-muted">
           Libera fundos para um fornecedor homologado e já vincula a nota
           fiscal, fechando a cadeia na trilha pública.
@@ -131,12 +131,13 @@ export function PaySupplierForm({
           : `Disponível: ${formatBrlFromCents(availableCents)}`}
       </p>
       {localError || errorMessage ? (
-        <p className="text-sm text-red-800" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {localError ?? errorMessage}
         </p>
       ) : null}
       <Button
         type="submit"
+        variant="institutional"
         className="w-full sm:w-auto"
         loading={submitting}
         disabled={availableCents <= 0}

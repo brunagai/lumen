@@ -26,7 +26,7 @@ export function ErrorPanel({ message, onRetry }: ErrorPanelProps) {
       className="rounded-2xl border border-border bg-surface p-5 sm:p-6"
       role="alert"
     >
-      <p className="text-sm text-red-800">{message}</p>
+      <p className="text-sm text-danger">{message}</p>
       {onRetry ? (
         <div className="mt-4">
           <Button variant="secondary" onClick={onRetry}>

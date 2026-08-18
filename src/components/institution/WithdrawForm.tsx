@@ -52,7 +52,7 @@ export function WithdrawForm({
       className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:p-6"
     >
       <div>
-        <h2 className="text-lg font-semibold text-teal">Saque para conta PJ</h2>
+        <h2 className="text-lg font-semibold text-primary">Saque para conta PJ</h2>
         <p className="mt-1 text-sm text-muted">
           A retirada gera uma saída pendente até o envio da nota fiscal, o que
           reduz o score de transparência.
@@ -73,12 +73,13 @@ export function WithdrawForm({
           : `Disponível: ${formatBrlFromCents(availableCents)}`}
       </p>
       {localError || errorMessage ? (
-        <p className="text-sm text-red-800" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {localError ?? errorMessage}
         </p>
       ) : null}
       <Button
         type="submit"
+        variant="institutional"
         className="w-full sm:w-auto"
         loading={submitting}
         disabled={availableCents <= 0}

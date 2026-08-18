@@ -62,7 +62,7 @@ export function MovementItem({ movement }: MovementItemProps) {
               href={explorerHref.value}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium break-all text-teal underline-offset-2 hover:underline"
+              className="text-sm font-medium break-all text-primary underline-offset-2 hover:underline"
             >
               Tx {shortenSignature(movement.txSignature)} na Devnet
             </a>

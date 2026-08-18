@@ -61,7 +61,7 @@ export function TransparencyTrail() {
   return (
     <div className="flex flex-col gap-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-teal sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
           Trilha de Transparência
         </h1>
         <p className="mt-2 max-w-2xl text-muted">

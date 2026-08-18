@@ -18,10 +18,10 @@ export function CampaignProgress({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        className="h-3 overflow-hidden rounded-full bg-background"
+        className="h-3 overflow-hidden rounded-full bg-base"
       >
         <div
-          className="h-full rounded-full bg-teal transition-[width]"
+          className="h-full rounded-full bg-accent transition-[width]"
           style={{ width: `${percent}%` }}
         />
       </div>

@@ -50,13 +50,13 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
         className="relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-surface p-4 shadow-lg sm:p-6"
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 id="lumen-modal-title" className="text-xl font-semibold text-teal">
+          <h2 id="lumen-modal-title" className="text-xl font-semibold text-primary">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-2 py-1 text-sm text-muted hover:bg-teal-soft hover:text-teal"
+            className="rounded-lg px-2 py-1 text-sm text-muted hover:bg-primary-soft hover:text-primary"
           >
             Fechar
           </button>

@@ -10,7 +10,7 @@ function scoreTone(value: number): string {
   }
 
   if (value >= 80) {
-    return "text-teal";
+    return "text-primary";
   }
 
   return "text-pending";
@@ -21,7 +21,7 @@ export function TransparencyScoreCard({ score }: TransparencyScoreCardProps) {
     score.value >= 90
       ? "bg-closed"
       : score.value >= 80
-        ? "bg-teal"
+        ? "bg-primary"
         : "bg-pending";
 
   return (
@@ -38,7 +38,7 @@ export function TransparencyScoreCard({ score }: TransparencyScoreCardProps) {
         aria-valuemin={0}
         aria-valuemax={score.max}
         aria-valuenow={score.value}
-        className="mt-4 h-3 overflow-hidden rounded-full bg-background"
+        className="mt-4 h-3 overflow-hidden rounded-full bg-base"
       >
         <div
           className={`h-full rounded-full ${barClass}`}

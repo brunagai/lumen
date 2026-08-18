@@ -132,15 +132,15 @@ export function InstitutionDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <header className="flex flex-col gap-4 rounded-2xl bg-secondary px-5 py-6 text-white sm:flex-row sm:items-start sm:justify-between sm:px-8">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight break-words text-teal sm:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-tight break-words text-white sm:text-3xl">
             {INSTITUTION.name} — CNPJ verificado
           </h1>
-          <p className="mt-1 text-sm text-muted">CNPJ {INSTITUTION.cnpj}</p>
+          <p className="mt-1 text-sm text-white/85">CNPJ {INSTITUTION.cnpj}</p>
         </div>
         <Button
-          variant="secondary"
+          variant="inverse"
           className="w-full sm:w-auto"
           loading={isSigningOut}
           onClick={() => void handleSignOut()}

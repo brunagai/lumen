@@ -27,8 +27,8 @@ export function AppNav() {
             aria-current={isActive ? "page" : undefined}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               isActive
-                ? "bg-teal-soft text-teal"
-                : "text-muted hover:bg-teal-soft hover:text-teal"
+                ? "bg-accent text-ink"
+                : "text-white/90 hover:bg-white/10 hover:text-white"
             }`}
           >
             {link.label}

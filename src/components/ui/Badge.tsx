@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 const tones = {
   safe: "bg-safe-bg text-safe",
   verified: "bg-verified-bg text-verified",
-  neutral: "bg-teal-soft text-teal",
+  neutral: "bg-primary-soft text-primary",
   inflow: "bg-inflow-bg text-inflow",
   closed: "bg-closed-bg text-closed",
   pending: "bg-pending-bg text-pending",

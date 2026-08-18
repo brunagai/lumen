@@ -2,11 +2,15 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 const variants = {
   primary:
-    "bg-teal text-white hover:bg-teal/90 focus-visible:outline-teal",
+    "bg-accent text-ink hover:bg-accent-hover focus-visible:outline-accent disabled:border disabled:border-border disabled:bg-accent-soft disabled:text-muted disabled:hover:bg-accent-soft",
   secondary:
-    "border border-border bg-surface text-foreground hover:bg-teal-soft focus-visible:outline-teal",
+    "border border-border bg-surface text-foreground hover:bg-primary-soft hover:text-primary focus-visible:outline-primary disabled:text-muted",
   ghost:
-    "text-teal hover:bg-teal-soft focus-visible:outline-teal",
+    "text-primary hover:bg-primary-soft focus-visible:outline-primary",
+  inverse:
+    "border border-white/40 bg-transparent text-white hover:bg-white/10 focus-visible:outline-white",
+  institutional:
+    "bg-primary text-white hover:bg-primary/90 focus-visible:outline-primary disabled:bg-primary-soft disabled:text-muted",
 } as const;
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -30,7 +34,7 @@ export function Button({
     <button
       type={type}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed ${variants[variant]} ${className}`}
       {...props}
     >
       {loading ? loadingLabel : children}

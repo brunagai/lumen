@@ -62,7 +62,7 @@ export default async function ReciboPage({
     return (
       <main className="mx-auto max-w-xl px-4 py-10">
         <p className="text-sm text-muted">Comprovante verificável · Lúmen.</p>
-        <h1 className="mt-2 text-2xl font-semibold text-teal">
+        <h1 className="mt-2 text-2xl font-semibold text-primary">
           Recibo inválido
         </h1>
         <p className="mt-3 text-muted" role="alert">
@@ -76,7 +76,7 @@ export default async function ReciboPage({
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
       <p className="text-sm text-muted">Comprovante verificável · Lúmen.</p>
-      <h1 className="mt-2 text-2xl font-semibold text-teal">
+      <h1 className="mt-2 text-2xl font-semibold text-primary">
         Recibo / Nota Fiscal
       </h1>
       <dl className="mt-6 grid gap-4 rounded-2xl border border-border bg-surface p-6">

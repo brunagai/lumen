@@ -1,40 +1,57 @@
 @import "tailwindcss";
+@config "../../tailwind.config.ts";
 
 :root {
-  --background: #f7f4ef;
-  --foreground: #1c1917;
-  --surface: #fffdf9;
-  --border: #e7e0d6;
-  --teal: #0f4c5c;
-  --teal-soft: #e6f1f3;
-  --gold: #b0892e;
-  --safe: #1b4332;
-  --safe-bg: #d8f3dc;
-  --verified: #0f4c5c;
-  --verified-bg: #e6f1f3;
-  --muted: #57534e;
-  --inflow: #0f4c5c;
-  --inflow-bg: #e6f1f3;
-  --closed: #1b4332;
-  --closed-bg: #d8f3dc;
-  --pending: #9a6700;
-  --pending-bg: #f8edc8;
-  --outflow: #7c4a1e;
+  --base: #fcfbf9;
+  --primary: #376179;
+  --secondary: #376179;
+  --accent: #f2934d;
+  --accent-hover: #d97e32;
+  --accent-soft: #fde8d6;
+  --ink: #2d2d2d;
+  --primary-soft: #e7eef2;
+  --background: #fcfbf9;
+  --foreground: #2d2d2d;
+  --surface: #ffffff;
+  --border: #d8d0c6;
+  --muted: #4a4a4a;
+  --danger: #8f2d2d;
+  --safe: #2f6b4f;
+  --safe-bg: #e4f0e8;
+  --verified: #376179;
+  --verified-bg: #e7eef2;
+  --inflow: #376179;
+  --inflow-bg: #e7eef2;
+  --closed: #2f6b4f;
+  --closed-bg: #e4f0e8;
+  --pending: #a85a1a;
+  --pending-bg: #fde8d6;
+  --outflow: #9a4a24;
 }
 
 @theme inline {
+  --color-base: var(--base);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-ink: var(--ink);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary-soft: var(--primary-soft);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-border: var(--border);
-  --color-teal: var(--teal);
-  --color-teal-soft: var(--teal-soft);
-  --color-gold: var(--gold);
+  --color-muted: var(--muted);
+  --color-danger: var(--danger);
+  --color-teal: var(--primary);
+  --color-teal-soft: var(--primary-soft);
+  --color-gold: var(--accent);
   --color-safe: var(--safe);
   --color-safe-bg: var(--safe-bg);
   --color-verified: var(--verified);
   --color-verified-bg: var(--verified-bg);
-  --color-muted: var(--muted);
   --color-inflow: var(--inflow);
   --color-inflow-bg: var(--inflow-bg);
   --color-closed: var(--closed);
@@ -47,7 +64,7 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--base);
+  color: var(--ink);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }

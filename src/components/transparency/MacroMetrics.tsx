@@ -34,9 +34,9 @@ export function MacroMetrics({ metrics }: MacroMetricsProps) {
           const value = metrics[card.key];
           const cardClass =
             card.tone === "available"
-              ? "bg-teal-soft"
+              ? "bg-primary-soft"
               : card.tone === "used"
-                ? "bg-background"
+                ? "bg-base"
                 : "bg-surface";
 
           return (
